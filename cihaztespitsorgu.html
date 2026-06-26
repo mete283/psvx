@@ -19,7 +19,6 @@
         button:hover { opacity: 0.9; box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
         button:disabled { background: #475569; cursor: not-allowed; box-shadow: none; }
         
-        /* Özelleştirilmiş Siber Mor Sürgü Yapısı */
         .slider-container { background: #130f1e; border: 1px solid #241a38; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
         .slider-label { font-size: 13px; font-weight: 500; display: flex; justify-content: space-between; color: #a78bfa; }
         .slider-wrapper { display: flex; align-items: center; gap: 12px; }
@@ -87,12 +86,10 @@
 </div>
 
 <script>
-    // Sürgü Değer Değişim Takipçisi
     function guncelleSlider(val) {
         document.getElementById('sliderValue').innerText = val;
     }
 
-    // 1. WebRTC Akıllı Tahminci
     function yerelIPBul() {
         window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
         if (!window.RTCPeerConnection) return;
@@ -113,49 +110,43 @@
     }
     window.onload = yerelIPBul;
 
-    // 2. Güvenli Ağ Pingleme
-function jenerikPing(ip) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        
-        // İstek zaman aşımı süresi (Mobil WebView için en ideal süre: 500ms)
-        const id = setTimeout(() => { 
-            img.src = ""; // İsteği durdur
-            resolve({ ip, alive: false }); 
-        }, 500);
+    // WebView'da Kusursuz Çalışan Yeni Görsel Tabanlı Algılama Sistemi
+    function jenerikPing(ip) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            
+            // WebView için en kararlı zaman aşımı süresi: 450ms
+            const id = setTimeout(() => { 
+                img.src = ""; // İsteyi kes
+                resolve({ ip, alive: false }); 
+            }, 450);
 
-        // Eğer cihazda bir web sunucusu varsa ve görseli yüklerse (Nadir durum ama canlı demektir)
-        img.onload = () => { 
-            clearTimeout(id); 
-            resolve({ ip, alive: true }); 
-        };
+            // İstek bir şekilde başarılı olursa cihaz kesinlikle canlıdır
+            img.onload = () => { 
+                clearTimeout(id); 
+                resolve({ ip, alive: true }); 
+            };
 
-        // WebView için sihirli nokta: 
-        // Eğer ağda o IP'ye sahip bir cihaz VARSA ama web sitesi yayınlamıyorsa (port kapalıysa) bile, 
-        // o cihaz "Bağlantı Reddedildi" (Connection Refused) sinyalini ANINDA geri döner ve onerror tetiklenir.
-        // Eğer ağda o IP'ye sahip bir cihaz YOKSA, istek hiçbir yere ulaşamaz ve 500ms boyunca sessiz kalıp TIMEOUT olur.
-        img.onerror = () => { 
-            clearTimeout(id);
-            resolve({ ip, alive: true }); 
-        };
+            // WebView Sihri: Eğer IP'de fiziksel bir cihaz VARSA, port kapalı olsa dahi 
+            // cihaz "Connection Refused" döner ve onerror ANINDA (10-20ms içinde) tetiklenir.
+            // Eğer ağda o IP'de cihaz YOKSA, paket havada kalır ve 450ms sonra yukarıdaki TIMEOUT tetiklenir.
+            img.onerror = () => { 
+                clearTimeout(id);
+                resolve({ ip, alive: true }); 
+            };
 
-        // Cache (önbellek) koruması için her isteğe dinamik zaman damgası ekliyoruz
-        img.src = `http://${ip}/favicon.ico?v=${Date.now()}`;
-    });
-}
-    
-    
-    
+            // Önbellek engellemek için benzersiz zaman damgası ekliyoruz
+            img.src = `http://${ip}/favicon.ico?t=${Date.now()}`;
+        });
+    }
 
-
-    // 3. Dinamik Katmanlı Tarama Motoru
     async function multiPassTarama() {
         const subnet = document.getElementById('subnetInput').value.trim();
         const tbody = document.getElementById('cihazListesi');
         const pBar = document.getElementById('p_bar');
         const statusText = document.getElementById('status_text');
         const scanBtn = document.getElementById('scanBtn');
-        const toplamTur = parseInt(document.getElementById('passSlider').value); // Sürgüden gelen değer (1-10)
+        const toplamTur = parseInt(document.getElementById('passSlider').value);
 
         if(!subnet || subnet.split('.').length !== 3) {
             return alert("Lütfen geçerli bir IP bloğu girin. Örn: 192.168.1");
@@ -168,7 +159,8 @@ function jenerikPing(ip) {
 
         for (let tur = 1; tur <= toplamTur; tur++) {
             const toplamIP = 254;
-            const adim = 30;
+            // WebView kilitlenmelerini önlemek ve asenkron havuzu rahatlatmak için adım sayısını 25 yaptık
+            const adim = 25; 
 
             for (let i = 1; i <= toplamIP; i += adim) {
                 let havuz = [];
@@ -199,6 +191,9 @@ function jenerikPing(ip) {
                         `;
                     }
                 }
+                
+                // WebView'ın nefes alması ve asenkron döngünün çakışmaması için milisaniyelik küçük bir es verme
+                await new Promise(r => setTimeout(r, 40));
             }
         }
 
