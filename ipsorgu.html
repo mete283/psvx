@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber IP İstihbarat | Canlı Analiz</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin: 15px 0; box-sizing: border-box; text-align: center; }
+        button { background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; width: 100%; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #7c3aed; }
+        
+        table { width: 100%; margin-top: 25px; border-collapse: collapse; background: #130f1e; border-radius: 15px; overflow: hidden; display: none; }
+        td { padding: 12px; border-bottom: 1px solid #241a38; font-size: 13px; }
+        .key { color: var(--mor); font-weight: bold; width: 40%; }
+        .val { color: #f8fafc; text-align: right; font-family: monospace; }
+        #harita { height: 200px; margin-top: 20px; border-radius: 15px; border: 1px solid #2e1065; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>İp Sorgu</h2>
+    <input type="text" id="ipInput" placeholder="IP ADRESİ GİRİNİZ...">
+    <button onclick="analizEt()">Sorgula</button>
+
+    <table id="veriTablosu">
+        <tr><td class="key">Ülke</td><td class="val" id="v_ulke">-</td></tr>
+        <tr><td class="key">Bölge</td><td class="val" id="v_bolge">-</td></tr>
+        <tr><td class="key">Şehir</td><td class="val" id="v_sehir">-</td></tr>
+        <tr><td class="key">Servis (ISP)</td><td class="val" id="v_isp">-</td></tr>
+        <tr><td class="key">Organizasyon</td><td class="val" id="v_org">-</td></tr>
+        <tr><td class="key">Koordinat</td><td class="val" id="v_koor">-</td></tr>
+        <tr><td class="key">Saat Dilimi</td><td class="val" id="v_saat">-</td></tr>
+    </table>
+    <div id="harita"></div>
+</div>
+
+<script>
+    const map = L.map('harita').setView([39.0, 35.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    async function analizEt() {
+        const ip = document.getElementById('ipInput').value;
+        if(!ip) return;
+        
+        const tablo = document.getElementById('veriTablosu');
+        const haritaDiv = document.getElementById('harita');
+        tablo.style.display = 'table';
+        haritaDiv.style.display = 'block';
+
+        const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,regionName,city,isp,org,lat,lon,timezone`);
+        const data = await res.json();
+
+        if(data.status === 'success') {
+            document.getElementById('v_ulke').innerText = data.country;
+            document.getElementById('v_bolge').innerText = data.regionName;
+            document.getElementById('v_sehir').innerText = data.city;
+            document.getElementById('v_isp').innerText = data.isp;
+            document.getElementById('v_org').innerText = data.org;
+            document.getElementById('v_koor').innerText = `${data.lat}, ${data.lon}`;
+            document.getElementById('v_saat').innerText = data.timezone;
+            
+            map.flyTo([data.lat, data.lon], 10);
+            L.marker([data.lat, data.lon]).addTo(map);
+        } else {
+            alert("Veri çekilemedi: " + data.message);
+        }
+    }
+</script>
+</body>
+</html>

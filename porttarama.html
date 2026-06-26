@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Port Analiz</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #05030a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 600px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin-bottom: 10px; text-align: center; outline: none; }
+        button { width: 100%; background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
+        button:disabled { background: #3730a3; cursor: not-allowed; }
+        
+        /* Yükleme Çubuğu Stili */
+        #progress-container { width: 100%; background: #0a0712; border-radius: 50px; height: 12px; margin-bottom: 20px; display: none; overflow: hidden; border: 1px solid #4c1d95; }
+        #progress-bar { width: 0%; height: 100%; background: var(--mor); transition: width 0.4s ease; }
+        
+        .port-item { background: #130f24; padding: 12px; border-radius: 12px; border: 1px solid #2e1065; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .acik { color: #10b981; font-weight: bold; }
+        .kapali { color: #ef4444; }
+        #results { max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>PORT ANALİZ</h2>
+    <input type="text" id="ip" placeholder="Hedef IP (Örn: 192.168.1.1)">
+    <input type="text" id="ports" placeholder="Portlar (Örn: 80, 443, 8080)">
+    <button id="taramaBtn" onclick="taramaBaslat()">BAŞLAT</button>
+    
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="status-text" style="font-size: 12px; margin-bottom: 15px; text-align: center; color: #94a3b8;"></div>
+    
+    <div id="results"></div>
+</div>
+
+<script>
+async function taramaBaslat() {
+    const ip = document.getElementById('ip').value;
+    const portInput = document.getElementById('ports').value;
+    const portList = portInput.split(',').map(p => p.trim()).filter(p => p !== "");
+    const results = document.getElementById('results');
+    const pContainer = document.getElementById('progress-container');
+    const pBar = document.getElementById('progress-bar');
+    const statusText = document.getElementById('status-text');
+    const btn = document.getElementById('taramaBtn');
+    
+    if(!ip || portList.length === 0) return alert("Lütfen geçerli IP ve Port girin.");
+    
+    // Sıfırlama
+    results.innerHTML = "";
+    pContainer.style.display = 'block';
+    pBar.style.width = '0%';
+    btn.disabled = true;
+    
+    let tamamlanan = 0;
+
+    for (let port of portList) {
+        const div = document.createElement('div');
+        div.className = 'port-item';
+        div.innerHTML = `<span>Port ${port}</span><span id="p-${port}">Analiz ediliyor...</span>`;
+        results.appendChild(div);
+
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+            await fetch(`http://${ip}:${port}`, { mode: 'no-cors', signal: controller.signal });
+            document.getElementById(`p-${port}`).innerHTML = '<span class="acik">AÇIK</span>';
+        } catch (e) {
+            document.getElementById(`p-${port}`).innerHTML = '<span class="kapali">KAPALI</span>';
+        }
+        
+        // İlerleme Çubuğu Güncelleme
+        tamamlanan++;
+        let yuzde = (tamamlanan / portList.length) * 100;
+        pBar.style.width = yuzde + "%";
+        statusText.innerText = `İşlem: %${Math.round(yuzde)} - Port ${port} tamamlandı.`;
+    }
+    
+    statusText.innerText = "Tarama tamamlandı.";
+    btn.disabled = false;
+}
+</script>
+</body>
+</html>

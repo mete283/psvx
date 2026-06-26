@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Fotoğraf Metadata Analizi (EXIF OSINT)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <style>
+        :root { 
+            --mor: #a855f7; 
+            --koyu: #05030a; 
+            --neon: 0 0 15px rgba(168, 85, 247, 0.6);
+            --neon-border: 0 0 8px rgba(168, 85, 247, 0.4);
+        }
+        
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body { 
+            background: var(--koyu); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 30px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .panel-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 850px) {
+            .panel-container { grid-template-columns: 1fr; }
+        }
+
+        .sol-panel, .sag-panel {
+            background: #0f0b1a;
+            border: 1px solid #2e1065;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Yükleme Alanı */
+        .drop-zone {
+            border: 2px dashed #4c1d95;
+            border-radius: 15px;
+            padding: 30px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #0a0712;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--mor);
+            box-shadow: var(--neon-border);
+            background: #120924;
+        }
+        .drop-zone p { color: #94a3b8; font-size: 14px; margin-top: 10px; }
+        .drop-zone span { color: var(--mor); font-weight: bold; }
+
+        /* Önizleme */
+        .preview-box {
+            display: none;
+            width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #2e1065;
+            background: #000;
+        }
+        .preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Sonuç Tablosu */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .result-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1e1b4b;
+            font-size: 13px;
+        }
+        .result-table tr:last-child td { border-bottom: none; }
+        .key { color: #94a3b8; font-weight: 500; }
+        .val { text-align: right; color: white; font-weight: 600; word-break: break-all; }
+
+        /* Harita Ayarı */
+        .map-section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--mor);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #map {
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            border: 1px solid #2e1065;
+            background: #0a0712;
+            display: none;
+        }
+
+        .status-safe { color: #10b981; text-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+        .status-warn { color: #f59e0b; text-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+        .status-crit { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+  
+          h2 { 
+            color: var(--mor); 
+            text-align: center; \n            text-transform: uppercase; \n            letter-spacing: 2px; \n        }
+
+    </style>
+</head>
+<body>
+
+<div class="panel-container">
+    <h2>FOTOĞRAF SORGU</h2>
+
+    <div class="sol-panel">
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <p>Analiz edilecek fotoğrafı sürükleyin veya <span>Göz Atın</span></p>
+            <input type="file" id="fileInput" accept="image/jpeg, image/jpg" style="display:none" onchange="dosyaSecildi(this.files[0])">
+        </div>
+
+        <div class="preview-box" id="previewBox">
+            <img id="imgPreview" src="" alt="Önizleme">
+        </div>
+
+        <table class="result-table">
+            <tr>
+                <td class="key">Dosya İsmi</td>
+                <td class="val" id="meta_name">-</td>
+            </tr>
+            <tr>
+                <td class="key">Dosya Boyutu</td>
+                <td class="val" id="meta_size">-</td>
+            </tr>
+            <tr>
+                <td class="key">Çözünürlük Oranı</td>
+                <td class="val" id="meta_resolution">-</td>
+            </tr>
+            <tr>
+                <td class="key">MD5 Parmak İzi</td>
+                <td class="val" id="meta_hash" style="font-family: monospace; font-size:11px;">-</td>
+            </tr>
+            <tr>
+                <td class="key">SHA-256 Adli İmza</td>
+                <td class="val" id="meta_sha256" style="font-family: monospace; font-size:11px;">-</td>
+            </tr>
+            <tr>
+                <td class="key">Maskeleme Kontrolü</td>
+                <td class="val" id="meta_mask">-</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="sag-panel">
+        <table class="result-table">
+            <tr>
+                <td class="key">Cihaz Üreticisi</td>
+                <td class="val" id="exif_make">-</td>
+            </tr>
+            <tr>
+                <td class="key">Cihaz Model Bilgisi</td>
+                <td class="val" id="exif_model">-</td>
+            </tr>
+            <tr>
+                <td class="key">Orijinal Çekim Zamanı</td>
+                <td class="val" id="exif_date">-</td>
+            </tr>
+            <tr>
+                <td class="key">Yazılım Sürümü</td>
+                <td class="val" id="exif_software">-</td>
+            </tr>
+            <tr>
+                <td class="key">Lens / Diyafram Aralığı</td>
+                <td class="val" id="exif_lens">-</td>
+            </tr>
+            <tr>
+                <td class="key">Flaş & Işık Kaynağı</td>
+                <td class="val" id="exif_flash">-</td>
+            </tr>
+            <tr>
+                <td class="key">Odak / Çekim Modu</td>
+                <td class="val" id="exif_focal">-</td>
+            </tr>
+            <tr>
+                <td class="key">Pozlama / Renk Uzayı</td>
+                <td class="val" id="exif_colorspace">-</td>
+            </tr>
+            <tr>
+                <td class="key">Coğrafi Koordinatlar</td>
+                <td class="val" id="exif_coords">-</td>
+            </tr>
+        </table>
+
+        <div>
+            <div class="map-section-title" id="mapTitle" style="display:none;">📍 Coğrafi Hedefleme (OSINT Map)</div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const map = L.map('map').setView([39.0, 35.0], 5);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    
+    let currentMarker = null;
+
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); }, false);
+    });
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if(files.length > 0) dosyaSecildi(files[0]);
+    });
+
+    function dosyaSecildi(file) {
+        if (!file) return;
+        
+        if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
+            alert("Lütfen JPEG veya JPG formatında bir fotoğraf yükleyin.");
+            return;
+        }
+
+        document.getElementById('meta_name').innerText = file.name;
+        document.getElementById('meta_size').innerText = (file.size / (1024 * 1024)).toFixed(2) + " MB";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                document.getElementById('meta_resolution').innerText = `${this.width} x ${this.height} Px`;
+            };
+            img.src = e.target.result;
+            
+            document.getElementById('imgPreview').src = e.target.result;
+            document.getElementById('previewBox').style.display = 'block';
+            
+            // MD5 ve SHA-256 Hesaplama (Tam Bütünlük Kontrolü)
+            const wa = CryptoJS.lib.WordArray.create(e.target.result);
+            document.getElementById('meta_hash').innerText = CryptoJS.MD5(wa).toString().toUpperCase();
+            document.getElementById('meta_sha256').innerText = CryptoJS.SHA256(wa).toString().toUpperCase().substring(0, 32) + "...";
+        }
+        reader.readAsDataURL(file);
+
+        const binaryReader = new FileReader();
+        binaryReader.onload = function(e) {
+            const arr = new Uint8Array(e.target.result);
+            if(arr[0] === 0xFF && arr[1] === 0xD8) {
+                document.getElementById('meta_mask').innerHTML = `<span class="status-safe">Temiz (Orijinal JPEG)</span>`;
+            } else {
+                document.getElementById('meta_mask').innerHTML = `<span class="status-crit">⚠️ ŞÜPHELİ (Maskelenmiş!)</span>`;
+            }
+        };
+        binaryReader.readAsArrayBuffer(file.slice(0, 4));
+
+        EXIF.getData(file, function() {
+            document.getElementById('exif_make').innerText = EXIF.getTag(this, "Make") || "-";
+            document.getElementById('exif_model').innerText = EXIF.getTag(this, "Model") || "-";
+            document.getElementById('exif_date').innerText = EXIF.getTag(this, "DateTimeOriginal") || EXIF.getTag(this, "DateTime") || "-";
+            document.getElementById('exif_software').innerText = EXIF.getTag(this, "Software") || "-";
+
+            const fNumber = EXIF.getTag(this, "FNumber") ? `f/${EXIF.getTag(this, "FNumber")}` : "";
+            const iso = EXIF.getTag(this, "ISOSpeedRatings") ? `ISO-${EXIF.getTag(this, "ISOSpeedRatings")}` : "";
+            document.getElementById('exif_lens').innerText = (fNumber || iso) ? `${fNumber} ${iso}` : "-";
+
+            // Flaş ve Ortam Işığı Durumu tespiti
+            const flash = EXIF.getTag(this, "Flash");
+            const flashText = (flash & 1) ? "Flaş Patladı" : "Flaş Patlamadı";
+            const lightSource = EXIF.getTag(this, "LightSource") ? " / Yapay Işık" : " / Doğal Işık";
+            document.getElementById('exif_flash').innerText = flashText + lightSource;
+
+            // Odak Uzaklığı ve Dijital Çekim Modu Tespiti
+            const focal = EXIF.getTag(this, "FocalLength") ? `${EXIF.getTag(this, "FocalLength")}mm` : "-";
+            const sceneType = EXIF.getTag(this, "SceneCaptureType") === 1 ? "Manzara" : (EXIF.getTag(this, "SceneCaptureType") === 2 ? "Portre" : "Standart");
+            document.getElementById('exif_focal').innerText = `${focal} (${sceneType})`;
+
+            // Pozlama Modu ve Renk Uzayı Yapısı
+            const expProg = EXIF.getTag(this, "WhiteBalance") === 1 ? "Manuel WB" : "Oto WB";
+            const colorSpace = EXIF.getTag(this, "ColorSpace") === 1 ? "sRGB" : "Geniş Renk (Adobe)";
+            document.getElementById('exif_colorspace').innerText = `${expProg} / ${colorSpace}`;
+
+            // GPS Koordinat Çözümlemesi
+            const lat = EXIF.getTag(this, "GPSLatitude");
+            const lon = EXIF.getTag(this, "GPSLongitude");
+            const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+            const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+
+            if (lat && lon) {
+                const latDec = (lat[0] + lat[1]/60 + lat[2]/3600) * (latRef === "S" ? -1 : 1);
+                const lonDec = (lon[0] + lon[1]/60 + lon[2]/3600) * (lonRef === "W" ? -1 : 1);
+
+                document.getElementById('exif_coords').innerHTML = `<span class="status-safe">${latDec.toFixed(6)}, ${lonDec.toFixed(6)}</span>`;
+                
+                document.getElementById('mapTitle').style.display = 'block';
+                const mapEl = document.getElementById('map');
+                mapEl.style.display = 'block';
+                
+                map.invalidateSize();
+                map.flyTo([latDec, lonDec], 14);
+
+                if(currentMarker) map.removeLayer(currentMarker);
+                
+                currentMarker = L.circle([latDec, lonDec], {
+                    color: '#a855f7',
+                    fillColor: '#c084fc',
+                    fillOpacity: 0.4,
+                    radius: 200
+                }).addTo(map).bindPopup("Fotoğraf Kayıt Konumu").openPopup();
+            } else {
+                document.getElementById('exif_coords').innerHTML = `<span class="status-warn">GPS Verisi Bulunamadı</span>`;
+                document.getElementById('map').style.display = 'none';
+                document.getElementById('mapTitle').style.display = 'none';
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

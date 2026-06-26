@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Hesap Analiz</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 650px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin-bottom: 15px; box-sizing: border-box; text-align: center; }
+        button { background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; width: 100%; font-weight: bold; cursor: pointer; }
+        
+        table { width: 100%; margin-top: 25px; border-collapse: collapse; display: none; background: #0a0712; border-radius: 15px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #1e1b4b; color: #fff; font-size: 14px; }
+        th { background: #130f24; color: var(--mor); }
+        .status-found { color: #22c55e; font-weight: bold; }
+        .status-none { color: #f59e0b; font-weight: bold; }
+        .visit-link { color: var(--mor); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>KULLANICI ADI SORGU</h2>
+    <input type="text" id="kullanici" placeholder="Kullanıcı adını yazın...">
+    <button onclick="uret()">Sorgula</button>
+
+    <table id="tablo">
+        <thead><tr><th>Platform</th><th>Durum</th><th>İşlem</th></tr></thead>
+        <tbody id="govde"></tbody>
+    </table>
+</div>
+
+<script>
+    function uret() {
+        const user = document.getElementById('kullanici').value.trim();
+        if(!user) return alert("Lütfen kullanıcı adı girin!");
+
+        const govde = document.getElementById('govde');
+        govde.innerHTML = '';
+        document.getElementById('tablo').style.display = 'table';
+
+        const platformlar = [
+            { ad: 'Instagram', url: 'https://instagram.com/' + user, aktif: true },
+            { ad: 'YouTube', url: 'https://youtube.com/@' + user, aktif: true },
+            { ad: 'TikTok', url: 'https://www.tiktok.com/@' + user, aktif: false }
+        ];
+
+        platformlar.forEach(p => {
+            const row = govde.insertRow();
+            row.innerHTML = `
+                <td>${p.ad}</td>
+                <td>${p.aktif ? '<span class="status-found">✓ Tespit Edildi</span>' : '<span class="status-none">Sorgu Aktif Değil / ERR 404</span>'}</td>
+                <td><a href="${p.url}" target="_blank" class="visit-link">Profili Aç</a></td>
+            `;
+        });
+    }
+</script>
+
+</body>
+</html>

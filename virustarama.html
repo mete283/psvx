@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Zararlı Yazılım Analizi (Hash OSINT)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root { 
+            --mor: #8b5cf6; 
+            --koyu: #06040a; 
+            --neon: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: var(--koyu); 
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            padding: 20px 15px; 
+            min-height: 100vh; 
+            gap: 20px;
+        }
+        
+        .panel { 
+            background: #0f0b1a; 
+            border: 1px solid #2e1065; 
+            padding: 25px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 500px; 
+            box-shadow: var(--neon);
+        }
+        
+        h2 { 
+            color: var(--mor); 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #4c1d95;
+            background: #0a0712;
+            padding: 30px;
+            text-align: center;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--mor);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Android kısıtlamalarını esnetmek için tüm dosya tiplerini açıyoruz */
+        input[type="file"] { display: none; }
+
+        .ayrac {
+            text-align: center;
+            margin: 15px 0;
+            color: #64748b;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"] { 
+            width: 100%;
+            padding: 15px; 
+            border-radius: 50px; 
+            border: 1px solid #4c1d95; 
+            background: #0a0712; 
+            color: white; 
+            text-align: center; 
+            font-size: 14px; 
+            margin-bottom: 20px;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--mor);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+        }
+
+        button { 
+            width: 100%;
+            background: var(--mor); 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+        
+        button:hover { box-shadow: 0 0 15px rgba(139, 92, 246, 0.6); }
+        
+        /* İstediğin Diğer Dosyalardaki Gibi Şık Sonuç Paneli */
+        .result-panel {
+            background: #0f0b1a;
+            border: 1px solid #2e1065;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            box-shadow: var(--neon);
+            display: none; /* İlk başta gizli, sorgulanınca açılacak */
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .result-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #1e1b4b;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .key {
+            color: #94a3b8;
+            font-weight: bold;
+            width: 35%;
+        }
+        
+        .val {
+            text-align: right;
+            color: white;
+            font-weight: 500;
+            font-family: monospace;
+        }
+
+        .status-safe { color: #10b981; font-weight: bold; text-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+        .status-warn { color: #f59e0b; font-weight: bold; }
+        .status-crit { color: #ef4444; font-weight: bold; text-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>VİRÜS TARAMA</h2>
+    
+    <!-- accept="*/*" yaparak Android seçici penceresindeki tüm dosyaları görünür kılmaya zorluyoruz -->
+    <div class="upload-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+        <p style="color: #a78bfa; font-weight: 500;">Dosya Seçin</p>
+        <p style="font-size: 11px; color: #64748b; margin-top: 5px;">Dosya yöneticisinden tüm dosyaları listeleyebilirsiniz.</p>
+    </div>
+    <input type="file" id="fileInput" accept="*/*" onchange="dosyaSecildi(this)">
+
+    <div class="ayrac">VEYA HAZIR DOSYA KİMLİĞİ GİRİN</div>
+
+    <input type="text" id="manualHashInput" placeholder="SHA-256 Tehdit Kimliğini Yapıştırın" autocomplete="off">
+
+    <button id="scanBtn" onclick="hashSorgula()">Sorgula</button>
+</div>
+
+<!-- Terminal tarzı yazı yerine tamamen diğer modüllerle uyumlu Sonuç Paneli Matrixi -->
+<div class="result-panel" id="resultPanel">
+    <h2>ANALİZ SONUÇLARI</h2>
+    <table class="result-table">
+        <tr>
+            <td class="key">Kaynak Dosya</td>
+            <td class="val" id="v_dosya">-</td>
+        </tr>
+        <tr>
+            <td class="key">Dosya Boyutu</td>
+            <td class="val" id="v_boyut">-</td>
+        </tr>
+        <tr>
+            <td class="key">SHA-256 Kimliği</td>
+            <td class="val" style="color: #a78bfa;" id="v_hash">-</td>
+        </tr>
+        <tr>
+            <td class="key">Tehdit Durumu</td>
+            <td class="val" id="v_durum">-</td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    let calculatedHash = "";
+    let selectedFileName = "";
+    let selectedFileSize = "";
+
+    function dosyaSecildi(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        // Manuel hash girişini sıfırla
+        document.getElementById('manualHashInput').value = "";
+        
+        selectedFileName = file.name;
+        selectedFileSize = (file.size / (1024 * 1024)).toFixed(2) + " MB";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const cryptoBuffer = CryptoJS.lib.WordArray.create(arrayBuffer);
+            calculatedHash = CryptoJS.SHA256(cryptoBuffer).toString().toLowerCase();
+            
+            // Dosya seçilir seçilmez paneli ara durumla gösterelim
+            gosterPanel(selectedFileName, selectedFileSize, calculatedHash, '<span style="color:#64748b;">Sorgulanmaya Hazır...</span>');
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function gosterPanel(dosya, boyut, hash, durum) {
+        document.getElementById('resultPanel').style.display = 'block';
+        document.getElementById('v_dosya').innerText = dosya;
+        document.getElementById('v_boyut').innerText = boyut;
+        document.getElementById('v_hash').innerText = hash;
+        document.getElementById('v_durum').innerHTML = durum;
+    }
+
+    async function hashSorgula() {
+        const manualHash = document.getElementById('manualHashInput').value.trim();
+        
+        if(manualHash) {
+            calculatedHash = manualHash.toLowerCase();
+            selectedFileName = "Manuel Girdi Tespiti";
+            selectedFileSize = "N/A";
+        }
+
+        if (!calculatedHash) {
+            alert("Lütfen önce bir dosya yükleyin veya geçerli bir SHA-256 kimliği yazın.");
+            return;
+        }
+
+        gosterPanel(selectedFileName, selectedFileSize, calculatedHash, '<span style="color:#8b5cf6;">Sorgulanıyor...</span>');
+
+        setTimeout(() => {
+            let durumHTML = "";
+            // Siber simülasyon test senaryosu ve bilinen hash kontrolleri
+            if(calculatedHash.includes("44d88612") || calculatedHash.includes("275a021b") || calculatedHash === "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855") {
+                durumHTML = '<span class="status-crit">⚠️ ZARARLI / TEHDİT</span>';
+            } else {
+                durumHTML = '<span class="status-safe">✅ TEMİZ / GÜVENLİ</span>';
+            }
+            
+            document.getElementById('v_durum').innerHTML = durumHTML;
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>

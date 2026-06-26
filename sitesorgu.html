@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Canlı Gelişmiş Domain OSINT</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 700px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); box-sizing: border-box; }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin-bottom: 15px; box-sizing: border-box; text-align: center; font-size: 14px; }
+button { background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; width: 100%; font-weight: bold; cursor: pointer; }
+        button:hover { background: #7c3aed; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+        
+        .loading { text-align: center; color: var(--mor); font-weight: bold; margin-top: 15px; display: none; }
+        
+        table { width: 100%; margin-top: 25px; border-collapse: collapse; background: #130f1e; border-radius: 15px; overflow: hidden; display: none; }
+        td { padding: 14px; border-bottom: 1px solid #241a38; font-size: 14px; vertical-align: top; }
+        .key { color: #94a3b8; font-weight: bold; width: 30%; }
+        .val { color: white; word-break: break-all; text-align: left; }
+        .badge { background: #1e1b4b; border: 1px solid #4c1d95; color: #c084fc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>SİTE SORGU</h2>
+    <input type="text" id="domainInput" placeholder="Domain girin (Örn: google.com, e-devlet.gov.tr, twitter.com)">
+    <button onclick="derinKancaAt()">Sorgula</button>
+    
+    <div id="loadingStatus" class="loading">Siber Sorgu Hatları Aktif ediliyor, Veriler Çekiliyor...</div>
+
+    <table id="veriTablosu">
+        <tr><td class="key">IPv4 Adresi (A)</td><td class="val" id="v_ipv4">-</td></tr>
+        <tr><td class="key">IPv6 Adresi (AAAA)</td><td class="val" id="v_ipv6">-</td></tr>
+        <tr><td class="key">Mail Sunucuları (MX)</td><td class="val" id="v_mx">-</td></tr>
+        <tr><td class="key">İsim Sunucuları (NS)</td><td class="val" id="v_ns">-</td></tr>
+        <tr><td class="key">Güvenlik / TXT Kayıtları</td><td class="val" id="v_txt">-</td></tr>
+        <tr><td class="key">Veri Güvenilirliği</td><td class="val" style="color: #22c55e; font-weight: bold;">Cloudflare Global DNS Engine</td></tr>
+    </table>
+</div>
+
+<script>
+    // Cloudflare DNS üzerinden güvenli ve CORS engelsiz veri çekme fonksiyonu
+    async function dnsFetch(domain, type) {
+        try {
+            const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=${type}`, {
+                headers: { 'Accept': 'application/dns-json' }
+            });
+            const data = await response.json();
+            return data.Answer || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async function derinKancaAt() {
+        let domain = document.getElementById('domainInput').value.trim();
+        const tablo = document.getElementById('veriTablosu');
+        const loading = document.getElementById('loadingStatus');
+        
+        if(!domain) return alert("Lütfen geçerli bir alan adı (domain) girin.");
+        
+        // Temizleme: http:// veya https:// varsa kaldırır
+        domain = domain.replace(/(^\w+:|^)\/\//, '').replace('www.', '');
+
+        // Arayüz hazırlığı
+        tablo.style.display = 'none';
+        loading.style.display = 'block';
+
+        // Tüm sorguları aynı anda paralel olarak gerçek sunuculardan çekiyoruz
+        const [aRecords, aaaaRecords, mxRecords, nsRecords, txtRecords] = await Promise.all([
+            dnsFetch(domain, 'A'),
+            dnsFetch(domain, 'AAAA'),
+            dnsFetch(domain, 'MX'),
+            dnsFetch(domain, 'NS'),
+            dnsFetch(domain, 'TXT')
+        ]);
+
+        loading.style.display = 'none';
+        tablo.style.display = 'table';
+
+        // 1. IPv4 Çözümleme
+        if(aRecords.length > 0) {
+            document.getElementById('v_ipv4').innerHTML = aRecords.map(r => `<div><span class="badge">TTL: ${r.TTL}</span>${r.data}</div>`).join('');
+        } else {
+            document.getElementById('v_ipv4').innerHTML = `<span style="color: #ef4444;">Aktif IPv4 Kaydı Bulunamadı</span>`;
+        }
+
+        // 2. IPv6 Çözümleme
+        if(aaaaRecords.length > 0) {
+            document.getElementById('v_ipv6').innerHTML = aaaaRecords.map(r => `<div><span class="badge">TTL: ${r.TTL}</span>${r.data}</div>`).join('');
+        } else {
+            document.getElementById('v_ipv6').innerHTML = `<span style="color: #94a3b8;">IPv6 Kullanılmıyor</span>`;
+        }
+
+        // 3. Mail Sunucuları (MX)
+        if(mxRecords.length > 0) {
+            document.getElementById('v_mx').innerHTML = mxRecords.map(r => `<div><span class="badge">Öncelik: ${r.data.split(' ')[0]}</span>${r.data.split(' ')[1] || r.data}</div>`).join('');
+        } else {
+            document.getElementById('v_mx').innerHTML = `<span style="color: #ef4444;">E-Posta Altyapısı Bağlı Değil</span>`;
+        }
+
+        // 4. Name Servers (NS)
+        if(nsRecords.length > 0) {
+            document.getElementById('v_ns').innerHTML = nsRecords.map(r => `<div>${r.data}</div>`).join('');
+        } else {
+            document.getElementById('v_ns').innerHTML = `<span style="color: #ef4444;">DNS Sunucuları Çözümlenemedi</span>`;
+        }
+
+        // 5. TXT Kayıtları (SPF, Google Doğrulamaları vb.)
+        if(txtRecords.length > 0) {
+            document.getElementById('v_txt').innerHTML = txtRecords.map(r => `<div>${r.data}</div>`).join('');
+        } else {
+            document.getElementById('v_txt').innerHTML = `<span style="color: #94a3b8;">Açık TXT/Doğrulama kaydı yok</span>`;
+        }
+    }
+</script>
+</body>
+</html>

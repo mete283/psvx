@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Canlı Python Derleyici & Sandbox</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <style>
+        :root { 
+            --mor: #a855f7; 
+            --koyu: #05030a; 
+            --panel-bg: #0f0b1a;
+            --sinir: #2e1065;
+            --neon: 0 0 15px rgba(168, 85, 247, 0.4);
+            --cam: rgba(15, 11, 26, 0.75);
+        }
+        
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none; 
+        }
+        
+        body { 
+            background: var(--koyu); 
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--panel-bg);
+            border: 1px solid var(--sinir);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--sinir);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h2 { 
+            color: var(--mor); 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            font-size: 18px;
+            text-shadow: var(--neon);
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: 50px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid var(--mor);
+            color: var(--mor);
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 850px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #130f24;
+            color: white;
+            border: 1px solid var(--sinir);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--mor);
+            border-color: var(--mor);
+            box-shadow: var(--neon);
+        }
+
+        .run-btn {
+            background: var(--mor);
+            border-color: var(--mor);
+        }
+
+        textarea {
+            width: 100%;
+            height: 450px;
+            background: #07050d;
+            border: 1px solid var(--sinir);
+            border-radius: 12px;
+            color: #a7f3d0; /* Python kodları için tatlı yeşil tonu */
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 15px;
+            resize: none;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: var(--mor);
+            box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.2);
+        }
+
+        .output-box {
+            width: 100%;
+            height: 450px;
+            background: #030206;
+            border: 1px solid var(--sinir);
+            border-radius: 12px;
+            padding: 15px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            overflow-y: auto;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h2>PYTHON</h2>
+        <div id="engine-status" class="status-badge">Pyodide Yükleniyor...</div>
+    </header>
+
+    <div class="btn-group">
+        <button id="runBtn" class="run-btn" onclick="koduCalistir()" disabled>▶ KODU ÇALIŞTIR</button>
+        <button onclick="temizle()">TEMİZLE</button>
+        <button onclick="ornekYukle()">ÖRNEK YÜKLE</button>
+    </div>
+
+    <div class="grid">
+        <div class="panel-section">
+            <div class="section-title">Python Kaynak Kodu</div>
+            <textarea id="pyInput" placeholder="# Python kodlarınızı buraya yazın..."># Tarayıcı içi Python Test Modülü
+print("PSVX Python Sandbox Sistemine Hoş Geldiniz!")
+
+for i in range(1, 6):
+    print(f"Paket döngüsü test ediliyor: {i}")
+</textarea>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-title">Konsol Çıktısı (Terminal)</div>
+            <div id="konsolCikti" class="output-box">Çalışma ortamının hazır olması bekleniyor...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pyodideInstance = null;
+    const statusBadge = document.getElementById('engine-status');
+    const runBtn = document.getElementById('runBtn');
+    const konsol = document.getElementById('konsolCikti');
+
+    // Tarayıcı açıldığında arka planda WebAssembly Python motorunu yükler
+    async function initPyodide() {
+        try {
+            pyodideInstance = await loadPyodide();
+            statusBadge.innerHTML = "● PYTHON AKTİF";
+            statusBadge.style.borderColor = "#22c55e";
+            statusBadge.style.color = "#22c55e";
+            runBtn.disabled = false;
+            konsol.innerHTML = "Sistem hazır. Python kodunu yazıp 'KODU ÇALIŞTIR' butonuna basabilirsiniz.\n";
+        } catch (error) {
+            statusBadge.innerHTML = "● BAĞLANTI HATASI";
+            statusBadge.style.borderColor = "#ef4444";
+            statusBadge.style.color = "#ef4444";
+            konsol.innerHTML = "Hata: Python runtime motoru yüklenemedi. İnternet bağlantınızı kontrol edin.";
+        }
+    }
+
+    // İlk yüklemeyi başlat
+    initPyodide();
+
+    async function koduCalistir() {
+        if (!pyodideInstance) return;
+        
+        const kod = document.getElementById('pyInput').value;
+        konsol.innerHTML = "Kod yürütülüyor...\n\n";
+
+        // Python'ın standart print() fonksiyonunu JavaScript konsoluna yönlendirme altyapısı
+        pyodideInstance.runPython(`
+            import sys
+            import io
+            sys.stdout = io.StringIO()
+            sys.stderr = io.StringIO()
+        `);
+
+        try {
+            // Kodu izole sandbox içinde çalıştır
+            await pyodideInstance.runPythonAsync(kod);
+            
+            // Çıktıları yakala ve ekrana yazdır
+            let stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+            let stderr = pyodideInstance.runPython("sys.stderr.getvalue()");
+            
+            if(stderr) {
+                konsol.innerHTML = `<span style="color:#ef4444;">${stderr}</span>`;
+            } else {
+                konsol.innerHTML = stdout || "Kod çalıştırıldı (Geriye çıktı dönmedi).";
+            }
+        } catch (err) {
+            konsol.innerHTML = `<span style="color:#ef4444;">Sözdizimi / Çalışma Zamanı Hatası:\n${err.message}</span>`;
+        }
+    }
+
+    function temizle() {
+        document.getElementById('pyInput').value = '';
+        konsol.innerHTML = 'Konsol temizlendi.\n';
+    }
+
+    function ornekYukle() {
+        document.getElementById('pyInput').value = `# Basit bir siber araç simülasyonu\nimport random\n\ntarget_ip = "192.168.1.50"\nports = [21, 22, 80, 443, 8080]\n\nprint(f"== {target_ip} için Port Tarama Simülasyonu ==")\n\nfor port in ports:\n    durum = random.choice(["AÇIK", "KAPALI"])\n    print(f"Port {port}: {durum}")\n`;
+        konsol.innerHTML = "Örnek siber betik yüklendi.\n";
+    }
+</script>
+
+</body>
+</html>

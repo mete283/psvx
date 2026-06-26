@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Gelişmiş Plaka Analiz</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 600px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin-bottom: 15px; box-sizing: border-box; text-align: center; }
+        button { background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; width: 100%; font-weight: bold; cursor: pointer; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: #130f1e; border-radius: 15px; overflow: hidden; display: none; }
+        td { padding: 12px; border-bottom: 1px solid #241a38; font-size: 14px; }
+        .key { color: #94a3b8; font-weight: bold; }
+        .val { text-align: right; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>PLAKA SORGU</h2>
+    <input type="text" id="plakaInput" placeholder="Örn: 34ABC123" maxlength="10">
+    <button onclick="sorgula()">Sorgula</button>
+
+    <table id="veriTablosu">
+        <tr><td class="key">İl (Tescil)</td><td class="val" id="v_il">-</td></tr>
+        <tr><td class="key">Plaka Türü</td><td class="val" id="v_tur">-</td></tr>
+        <tr><td class="key">Bölge</td><td class="val" id="v_bolge">-</td></tr>
+    </table>
+</div>
+
+<script>
+const ilVerileri = {
+    '01': {il: 'Adana', bolge: 'Akdeniz'}, '02': {il: 'Adıyaman', bolge: 'Güneydoğu Anadolu'},
+    '03': {il: 'Afyonkarahisar', bolge: 'Ege'}, '04': {il: 'Ağrı', bolge: 'Doğu Anadolu'},
+    '05': {il: 'Amasya', bolge: 'Karadeniz'}, '06': {il: 'Ankara', bolge: 'İç Anadolu'},
+    '07': {il: 'Antalya', bolge: 'Akdeniz'}, '08': {il: 'Artvin', bolge: 'Karadeniz'},
+    '09': {il: 'Aydın', bolge: 'Ege'}, '10': {il: 'Balıkesir', bolge: 'Marmara'},
+    '11': {il: 'Bilecik', bolge: 'Marmara'}, '12': {il: 'Bingöl', bolge: 'Doğu Anadolu'},
+    '13': {il: 'Bitlis', bolge: 'Doğu Anadolu'}, '14': {il: 'Bolu', bolge: 'Karadeniz'},
+    '15': {il: 'Burdur', bolge: 'Akdeniz'}, '16': {il: 'Bursa', bolge: 'Marmara'},
+    '17': {il: 'Çanakkale', bolge: 'Marmara'}, '18': {il: 'Çankırı', bolge: 'İç Anadolu'},
+    '19': {il: 'Çorum', bolge: 'Karadeniz'}, '20': {il: 'Denizli', bolge: 'Ege'},
+    '21': {il: 'Diyarbakır', bolge: 'Güneydoğu Anadolu'}, '22': {il: 'Edirne', bolge: 'Marmara'},
+    '23': {il: 'Elazığ', bolge: 'Doğu Anadolu'}, '24': {il: 'Erzincan', bolge: 'Doğu Anadolu'},
+    '25': {il: 'Erzurum', bolge: 'Doğu Anadolu'}, '26': {il: 'Eskişehir', bolge: 'İç Anadolu'},
+    '27': {il: 'Gaziantep', bolge: 'Güneydoğu Anadolu'}, '28': {il: 'Giresun', bolge: 'Karadeniz'},
+    '29': {il: 'Gümüşhane', bolge: 'Karadeniz'}, '30': {il: 'Hakkari', bolge: 'Doğu Anadolu'},
+    '31': {il: 'Hatay', bolge: 'Akdeniz'}, '32': {il: 'Isparta', bolge: 'Akdeniz'},
+    '33': {il: 'Mersin', bolge: 'Akdeniz'}, '34': {il: 'İstanbul', bolge: 'Marmara'},
+    '35': {il: 'İzmir', bolge: 'Ege'}, '36': {il: 'Kars', bolge: 'Doğu Anadolu'},
+    '37': {il: 'Kastamonu', bolge: 'Karadeniz'}, '38': {il: 'Kayseri', bolge: 'İç Anadolu'},
+    '39': {il: 'Kırklareli', bolge: 'Marmara'}, '40': {il: 'Kırşehir', bolge: 'İç Anadolu'},
+    '41': {il: 'Kocaeli', bolge: 'Marmara'}, '42': {il: 'Konya', bolge: 'İç Anadolu'},
+    '43': {il: 'Kütahya', bolge: 'Ege'}, '44': {il: 'Malatya', bolge: 'Doğu Anadolu'},
+    '45': {il: 'Manisa', bolge: 'Ege'}, '46': {il: 'Kahramanmaraş', bolge: 'Akdeniz'},
+    '47': {il: 'Mardin', bolge: 'Güneydoğu Anadolu'}, '48': {il: 'Muğla', bolge: 'Ege'},
+    '49': {il: 'Muş', bolge: 'Doğu Anadolu'}, '50': {il: 'Nevşehir', bolge: 'İç Anadolu'},
+    '51': {il: 'Niğde', bolge: 'İç Anadolu'}, '52': {il: 'Ordu', bolge: 'Karadeniz'},
+    '53': {il: 'Rize', bolge: 'Karadeniz'}, '54': {il: 'Sakarya', bolge: 'Marmara'},
+    '55': {il: 'Samsun', bolge: 'Karadeniz'}, '56': {il: 'Siirt', bolge: 'Güneydoğu Anadolu'},
+    '57': {il: 'Sinop', bolge: 'Karadeniz'}, '58': {il: 'Sivas', bolge: 'İç Anadolu'},
+    '59': {il: 'Tekirdağ', bolge: 'Marmara'}, '60': {il: 'Tokat', bolge: 'Karadeniz'},
+    '61': {il: 'Trabzon', bolge: 'Karadeniz'}, '62': {il: 'Tunceli', bolge: 'Doğu Anadolu'},
+    '63': {il: 'Şanlıurfa', bolge: 'Güneydoğu Anadolu'}, '64': {il: 'Uşak', bolge: 'Ege'},
+    '65': {il: 'Van', bolge: 'Doğu Anadolu'}, '66': {il: 'Yozgat', bolge: 'İç Anadolu'},
+    '67': {il: 'Zonguldak', bolge: 'Karadeniz'}, '68': {il: 'Aksaray', bolge: 'İç Anadolu'},
+    '69': {il: 'Bayburt', bolge: 'Karadeniz'}, '70': {il: 'Karaman', bolge: 'İç Anadolu'},
+    '71': {il: 'Kırıkkale', bolge: 'İç Anadolu'}, '72': {il: 'Batman', bolge: 'Güneydoğu Anadolu'},
+    '73': {il: 'Şırnak', bolge: 'Güneydoğu Anadolu'}, '74': {il: 'Bartın', bolge: 'Karadeniz'},
+    '75': {il: 'Ardahan', bolge: 'Doğu Anadolu'}, '76': {il: 'Iğdır', bolge: 'Doğu Anadolu'},
+    '77': {il: 'Yalova', bolge: 'Marmara'}, '78': {il: 'Karabük', bolge: 'Karadeniz'},
+    '79': {il: 'Kilis', bolge: 'Güneydoğu Anadolu'}, '80': {il: 'Osmaniye', bolge: 'Akdeniz'},
+    '81': {il: 'Düzce', bolge: 'Karadeniz'}
+};
+
+function sorgula() {
+    const plaka = document.getElementById('plakaInput').value.trim();
+    const kod = plaka.substring(0, 2);
+    const tablo = document.getElementById('veriTablosu');
+    
+    if (ilVerileri[kod]) {
+        tablo.style.display = 'table';
+        document.getElementById('v_il').innerText = ilVerileri[kod].il;
+        document.getElementById('v_bolge').innerText = ilVerileri[kod].bolge;
+        
+        // Basit bir "Tür" mantığı
+        let tur = "Standart Sivil Plaka";
+        if(kod === '06' && plaka.includes('AA')) tur = "Resmi Makam / Devlet";
+        else if(kod === '34' && plaka.length < 6) tur = "Eski Tip / Özel Seri";
+        document.getElementById('v_tur').innerText = tur;
+    } else {
+        alert("Geçerli bir il kodu bulunamadı.");
+    }
+}
+</script>
+</body>
+</html>

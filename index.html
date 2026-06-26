@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSVX Panel</title>
+    <style>
+        :root { 
+            --mor: #a855f7; 
+            --koyu: #05030a; 
+            --neon: 0 0 18px rgba(168, 85, 247, 0.85);
+            --neon-border: 0 0 8px rgba(168, 85, 247, 0.5);
+        }
+        
+        /* Mavi Efekt Filtreleri Temizliği */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none; 
+            border: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body { 
+            background: var(--koyu); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 30px; 
+        }
+
+        header { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 40px; 
+        }
+        
+        .baslik { 
+            font-size: 24px; 
+            font-weight: bold; 
+            letter-spacing: 0.5px;
+        }
+        .psvx { 
+            color: var(--mor); 
+            text-shadow: var(--neon); 
+        }
+
+        /* ARAMA GRUBU */
+        .search-container { 
+            display: flex;
+            align-items: center;
+            width: 100%; 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            background: #0f0b1a; 
+            border: 1px solid var(--mor); 
+            border-radius: 50px; 
+            padding: 0 25px;
+            box-shadow: var(--neon-border);
+            transition: all 0.3s ease;
+        }
+        .search-container:focus-within {
+            box-shadow: var(--neon);
+            border-color: white;
+        }
+
+        /* KUSURSUZ GEOMETRİK BÜYÜTEÇ SİMGESİ */
+        .cizim-buyutec {
+            width: 14px; 
+            height: 14px; 
+            border: 2.5px solid var(--mor); 
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+            filter: drop-shadow(0 0 4px var(--mor));
+            margin-right: 15px;
+            transform: rotate(-45deg); /* Sapın tam köşeden çıkması için döndürme açısı */
+        }
+        .cizim-buyutec::after {
+            content: ''; 
+            position: absolute; 
+            bottom: -8px; 
+            left: 3.5px; 
+            width: 2.5px; 
+            height: 8px;
+            background: var(--mor); 
+            border-radius: 0 0 2px 2px;
+        }
+
+        .search-box { 
+            width: 100%; 
+            padding: 15px 0; 
+            background: transparent;
+            color: white; 
+            font-size: 14px;
+        }
+
+        /* SINIFLANDIRMALAR VE BUTONLAR */
+        .kategori-konteyner {
+            max-width: 600px; 
+            margin: 0 auto;
+        }
+        .kategori-baslik { 
+            color: var(--mor); 
+            margin: 35px 0 15px 0; 
+            font-size: 13px; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            text-shadow: var(--neon); 
+            padding-left: 5px; 
+        }
+        .grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; 
+        }
+        
+        .modul-btn { 
+            background: #0a0712; 
+            border: 1px solid #2e1065; 
+            padding: 18px; 
+            border-radius: 50px; 
+            color: white; 
+            cursor: pointer; 
+            font-weight: 500; 
+            letter-spacing: 0.5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .modul-btn:hover { 
+            border-color: var(--mor); 
+            box-shadow: var(--neon); 
+            background: #1a1230; 
+        }
+        .modul-btn:active {
+            background: var(--mor);
+            box-shadow: var(--neon);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="baslik"><span class="psvx">PSVX</span> Panel</div>
+</header>
+
+<div class="search-container">
+    <div class="cizim-buyutec"></div>
+    <input type="text" class="search-box" placeholder="Sistemde özellik ara...">
+</div>
+
+<div class="kategori-konteyner">
+    
+    <div class="kategori-baslik">Sorgular</div>
+    <main class="grid-container">
+        <button class="modul-btn" onclick="location.href='kullaniciadısorgu.html'">Kullanıcı Adı Sorgu</button>
+        <button class="modul-btn" onclick="location.href='plakasorgu.html'">Plaka Sorgu</button>
+                <button class="modul-btn" onclick="location.href='cihaztespitsorgu.html'">Wi-Fi Cihaz Sorgu</button>
+        <button class="modul-btn" onclick="location.href='macsorgu.html'">Mac Sorgu</button>
+        <button class="modul-btn" onclick="location.href='ipsorgu.html'">IP Sorgu</button>
+        <button class="modul-btn" onclick="location.href='operatorsorgu.html'">Operatör Sorgu</button>
+                <button class="modul-btn" onclick="location.href='sitesorgu.html'">Site Sorgu</button>
+                <button class="modul-btn" onclick="location.href='fotografsorgu.html'">Fotoğraf Sorgu</button>
+
+
+    </main>
+
+    <div class="kategori-baslik">Veri Güvenliği</div>
+    <main class="grid-container">
+               <button class="modul-btn" onclick="location.href='sifresorgu.html'">Şifre Güvenliği</button> 
+               <button class="modul-btn" onclick="location.href='sifreolustur.html'">Şifre Oluşturucu</button> 
+                       <button class="modul-btn" onclick="location.href='virustarama.html'">Virüs Tarama</button> 
+                       <button class="modul-btn" onclick="location.href='dns-sorgu.html'">Dns Tarama</button> 
+
+    </main>
+
+        <div class="kategori-baslik">Veri Alma</div>
+    <main class="grid-container">
+               <button class="modul-btn" onclick="location.href='admin.html'">Cihaz bilgi toplama</button> 
+               <button class="modul-btn" onclick="location.href='cihazhakkinda.html'">Telefon Hakkında</button> 
+               <button class="modul-btn" onclick="location.href='porttarama.html'">Açık Port Bulma</button> 
+        
+    </main>
+    
+    
+            <div class="kategori-baslik">Code Edit</div>
+    <main class="grid-container">
+               <button class="modul-btn" onclick="location.href='htmlcode.html'">Html Code</button>
+               <button class="modul-btn" onclick="location.href='pyeditor.html'">Python Code</button> 
+         
+    </main>
+    
+    
+                <div class="kategori-baslik">İnternet Araçları</div>
+    <main class="grid-container">
+                       <button class="modul-btn" onclick="location.href='agstres.html'">Ağ Stres Test</button> 
+                       <button class="modul-btn" onclick="location.href='pingtest.html'">Ping Test</button> 
+        
+    </main>
+    
+    
+    
+            <div class="kategori-baslik">Web Bug</div>
+    <main class="grid-container">
+               <button class="modul-btn" onclick="location.href='webbug.html'">WhatsApp CRASH</button> 
+        
+    </main>
+    
+    
+
+        <div class="kategori-baslik">Sistem dışı araçlar</div>
+    <main class="grid-container">
+        <button class="modul-btn" onclick="window.open('https://iplogger.org/', '_blank')">IP Logger (IP Analiz)</button>
+        <button class="modul-btn" onclick="window.open('https://grabify.link/', '_blank')">Grabify Link Tracker</button>
+        
+        <button class="modul-btn" onclick="window.open('https://www.virustotal.com/', '_blank')">VirusTotal Global</button>
+        <button class="modul-btn" onclick="window.open('https://urlscan.io/', '_blank')">URLScan.io (Web Analiz)</button>
+        <button class="modul-btn" onclick="window.open('https://hybrid-analysis.com/', '_blank')">Hybrid Analysis Sandbox</button>
+        
+        <button class="modul-btn" onclick="window.open('https://www.shodan.io/', '_blank')">Shodan IoT Arama</button>
+        <button class="modul-btn" onclick="window.open('https://censys.com/', '_blank')">Censys Ağ Tarayıcı</button>
+        <button class="modul-btn" onclick="window.open('https://bgp.he.net/', '_blank')">BGP Toolkit (Asn & IP)</button>
+        
+        <button class="modul-btn" onclick="window.open('https://haveibeenpwned.com/', '_blank')">Have I Been Pwned?</button>
+        <button class="modul-btn" onclick="window.open('https://leakcheck.io/', '_blank')">LeakCheck Sızıntı OSINT</button>
+        
+        <button class="modul-btn" onclick="window.open('https://whois.domaintools.com/', '_blank')">DomainTools (Whois)</button>
+        <button class="modul-btn" onclick="window.open('https://dnsdumpster.com/', '_blank')">DNS Dumpster (Subdomain)</button>
+        <button class="modul-btn" onclick="window.open('https://whatsmyname.app/', '_blank')">WhatsMyName (Profil Arama)</button>
+                <button class="modul-btn" onclick="window.open('https://webcam360.org/', '_blank')">Webcam360</button>
+    </main>
+
+</div>
+
+<script>
+    const searchInput = document.querySelector('.search-box');
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        document.querySelectorAll('.modul-btn').forEach(btn => {
+            const matches = btn.innerText.toLowerCase().includes(val);
+            btn.style.display = matches ? 'block' : 'none';
+        });
+    });
+</script>
+
+</body>
+</html>

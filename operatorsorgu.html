@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber Operatör İstihbarat | Analiz</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin: 15px 0; box-sizing: border-box; text-align: center; }
+        button { background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; width: 100%; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #7c3aed; }
+        
+        table { width: 100%; margin-top: 25px; border-collapse: collapse; background: #130f1e; border-radius: 15px; overflow: hidden; }
+        td { padding: 12px; border-bottom: 1px solid #241a38; font-size: 13px; }
+        .key { color: var(--mor); font-weight: bold; width: 40%; }
+        .val { color: #f8fafc; text-align: right; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>OPERATÖR SORGU</h2>
+    <input type="text" id="num" placeholder="5XX XXX XX XX">
+    <button onclick="analizEt()">Sorgula</button>
+
+    <table id="tablo">
+        <tr><td class="key">Operatör</td><td class="val" id="v_op">-</td></tr>
+        <tr><td class="key">Altyapı</td><td class="val" id="v_altyapi">-</td></tr>
+        <tr><td class="key">Hat Tipi</td><td class="val" id="v_tip">-</td></tr>
+    </table>
+</div>
+
+<script>
+    function analizEt() {
+        const num = document.getElementById('num').value.replace(/\D/g, '').substring(0, 3);
+        const db = {
+            '530': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel/Kurumsal'},
+            '531': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '532': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel/Özel'},
+            '533': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '534': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '535': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '536': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '537': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '538': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '539': {op: 'Turkcell', alt: 'Turkcell', tip: 'Bireysel'},
+            '540': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel/Kurumsal'},
+            '541': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '542': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '543': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '544': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '545': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '546': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '547': {op: 'Vodafone', alt: 'Vodafone', tip: 'Bireysel'},
+            '548': {op: 'Vodafone', alt: 'KKTC Telsim', tip: 'Kurumsal'},
+            '549': {op: 'Vodafone', alt: 'Vodafone', tip: 'Kurumsal'},
+            '501': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '505': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '506': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '507': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '551': {op: 'Türk Telekom', alt: 'Bimcell', tip: 'Sanal (MVNO)'},
+            '552': {op: 'Türk Telekom', alt: 'PttCell', tip: 'Sanal (MVNO)'},
+            '553': {op: 'Türk Telekom', alt: 'Teknosa Mobil', tip: 'Sanal (MVNO)'},
+            '554': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '555': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'},
+            '559': {op: 'Türk Telekom', alt: 'Türk Telekom', tip: 'Bireysel'}
+        };
+
+        const res = db[num] || {op: 'Tespit Edilemedi', alt: 'Bilinmiyor', tip: 'Numara Taşınmış Olabilir'};
+        document.getElementById('v_op').innerText = res.op;
+        document.getElementById('v_altyapi').innerText = res.alt;
+        document.getElementById('v_tip').innerText = res.tip;
+    }
+</script>
+</body>
+</html>

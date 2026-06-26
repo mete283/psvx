@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Hassas Ping Analizi</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        
+        .panel { 
+            background: #0f0b1a; 
+            border: 1px solid #2e1065; 
+            padding: 30px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 500px; 
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); 
+        }
+        
+        h2 { 
+            color: var(--mor); 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            font-size: 16px; 
+            margin-bottom: 20px; 
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            border-radius: 50px; 
+            border: 1px solid #4c1d95; 
+            background: #0a0712; 
+            color: white; 
+            margin-bottom: 15px; 
+            text-align: center; 
+            outline: none; 
+            display: block;
+        }
+        
+        button { 
+            width: 100%; 
+            background: var(--mor); 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar { width: 100%; height: 8px; background: #1e1b4b; border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+        #fill { width: 0%; height: 100%; background: var(--mor); transition: width 0.2s; }
+        #res { color: white; text-align: center; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>PİNG TEST</h2>
+    <input type="text" id="target" value="google.com" placeholder="Hedef (Örn: google.com)">
+    <button onclick="pingTest()">BAŞLAT</button>
+    <div class="progress-bar"><div id="fill"></div></div>
+    <div id="res"></div>
+</div>
+
+<script>
+    async function pingTest() {
+        const target = document.getElementById('target').value;
+        const res = document.getElementById('res');
+        const fill = document.getElementById('fill');
+        const paketSayisi = 15; 
+        let sureler = [];
+
+        res.innerHTML = "Analiz ediliyor (Sonucun Gelmesi Uzun Sürebilir)...";
+        fill.style.width = "0%";
+        
+        for (let i = 1; i <= paketSayisi; i++) {
+            const start = performance.now();
+            try {
+                await fetch(`https://${target}`, { method: 'HEAD', mode: 'no-cors', cache: 'no-cache' });
+                const end = performance.now();
+                sureler.push(Math.round(end - start));
+                fill.style.width = (i / paketSayisi) * 100 + "%";
+            } catch(e) {
+                res.innerHTML = "Hata: Bağlantı engellendi.";
+                return;
+            }
+        }
+
+        const min = Math.min(...sureler);
+        const avg = Math.round(sureler.reduce((a,b) => a+b) / sureler.length);
+
+        res.innerHTML = `
+            <div style="border-top: 1px solid #2e1065; padding-top: 15px;">
+                <p>Hedef: <b>${target}</b></p>
+                <p>En İyi Gecikme: <b style="color:var(--mor); font-size: 20px;">${min} ms</b></p>
+                <p>Ortalama: <b>${avg} ms</b></p>
+            </div>
+        `;
+    }
+</script>
+</body>
+</html>

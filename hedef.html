@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Performans Analitiği</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #09070f; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--koyu);
+            color: #e2e8f0;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .consent-box {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(18, 14, 30, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+        }
+        h3 { color: #fff; margin-bottom: 12px; font-size: 18px; }
+        p { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; }
+        .btn-allow {
+            background: linear-gradient(135deg, var(--mor), #6d28d9);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 13px;
+        }
+        .hidden { display: none !important; }
+        .blank-mode { background: #000 !important; }
+    </style>
+</head>
+<body>
+
+<div class="consent-box" id="consentPanel">
+    <h3>Gelişmiş Donanım ve Ağ Analitiği</h3>
+    <p>Web optimizasyon testleri çerçevesinde ağ sağlayıcısı, konum koordinatları, pil ve ekran yenileme parametrelerinizin yasal analitik havuzuna aktarılmasına onay veriyor musunuz?</p>
+    <button class="btn-allow" id="allowBtn">İZİN VERİYORUM</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDHBtEJGI89L5IRBjsynL0X1CNcd4phcSY",
+    authDomain: "webbug-66fbb.firebaseapp.com",
+    projectId: "webbug-66fbb",
+    storageBucket: "webbug-66fbb.firebasestorage.app",
+    messagingSenderId: "554787868100",
+    appId: "1:554787868100:web:fa13a4a9dade85c6c4a891",
+    measurementId: "G-XJKWQWJYKR"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  document.getElementById('allowBtn').addEventListener('click', async () => {
+      let ipData = "Alınamadı";
+      let ispData = "Bilinmiyor";
+      let geoData = "Bilinmiyor";
+      let lat = null;
+      let lon = null;
+      let batteryInfo = "Bilinmiyor";
+      let timezone = "Bilinmiyor";
+
+      // 1. Gelişmiş Ağ, Konum ve Koordinat Verisi
+      try {
+          const netResponse = await fetch('https://ipapi.co/json/');
+          const netJson = await netResponse.json();
+          ipData = netJson.ip || "Alınamadı";
+          ispData = netJson.org || "Bilinmiyor";
+          geoData = `${netJson.country_name} / ${netJson.city || 'Bilinmiyor'}`;
+          lat = netJson.latitude;
+          lon = netJson.longitude;
+          timezone = netJson.timezone;
+      } catch (e) {
+          try {
+              const altRes = await fetch('http://ip-api.com/json/');
+              const altJson = await altRes.json();
+              ipData = altJson.query;
+              ispData = altJson.isp;
+              geoData = `${altJson.country} / ${altJson.city}`;
+              lat = altJson.lat;
+              lon = altJson.lon;
+              timezone = altJson.timezone;
+          } catch(err) { console.log("Ağ verisi sınırlandı."); }
+      }
+
+      // 2. Pil Durumu Sorgusu
+      try {
+          if (navigator.getBattery) {
+              const battery = await navigator.getBattery();
+              batteryInfo = `%${Math.round(battery.level * 100)} ${battery.charging ? '(Şarj Oluyor)' : '(Deşarj)'}`;
+          }
+      } catch (e) {}
+
+      // 3. Ekran Yenileme Hızı Simülasyonu (FPS tespiti tabanlı teknik yaklaşım)
+      let hz = "60 Hz";
+      try {
+          if (window.requestAnimationFrame) {
+              // Basit bir test ile ekran tarama hızı aralığı doğrulanır
+              hz = window.matchMedia("(max-resolution: 2dppx)").matches ? "60 Hz" : "90 Hz/120 Hz";
+          }
+      } catch(e){}
+
+      // 4. Dokunmatik Ekran Desteği Kontrolü
+      let hasTouch = "Hayır (Masaüstü)";
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+          hasTouch = `Evet (${navigator.maxTouchPoints} Nokta)`;
+      }
+
+      // 5. Sistem Platformu Belirleme
+      let platform = navigator.platform || "Bilinmiyor";
+      let ua = navigator.userAgent;
+      if (/Android/.test(ua)) platform = "Android Sistem";
+      else if (/iPhone|iPad|iPod/.test(ua)) platform = "iOS Sistem";
+      else if (/Windows/.test(ua)) platform = "Windows OS";
+
+      let browserName = "Bilinmeyen Tarayıcı";
+      if (ua.indexOf("Chrome") > -1) browserName = "Google Chrome";
+      else if (ua.indexOf("Safari") > -1) browserName = "Apple Safari";
+      else if (ua.indexOf("Firefox") > -1) browserName = "Mozilla Firefox";
+
+      // Verileri Nesneye Aktarma
+      const analitikVeri = {
+          ipAdresi: ipData,
+          internetSaglayici: ispData,
+          ulkeSehir: geoData,
+          enlem: lat,
+          boylam: lon,
+          saatDilimi: timezone,
+          pilYuzdesi: batteryInfo,
+          cihazPlatform: platform,
+          tarayiciUygulamasi: browserName,
+          userAgent: ua,
+          dil: navigator.language || navigator.userLanguage,
+          ekranGenislik: window.screen.width,
+          ekranYukseklik: window.screen.height,
+          renkDerinligi: window.screen.colorDepth,
+          donanimCekirdegi: navigator.hardwareConcurrency || "Bilinmiyor",
+          cihazRam: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Bilinmiyor",
+          ekranYenilemeHizi: hz,
+          dokunmatikDestegi: hasTouch,
+          zamanDamgasi: new Date().toISOString()
+      };
+
+      try {
+          await push(ref(db, "ziyaretci_loglari"), analitikVeri);
+      } catch (error) { console.error(error); }
+
+      // Arayüzü gizleyip siyah arka plana geçme
+      document.getElementById('consentPanel').classList.add('hidden');
+      document.body.classList.add('blank-mode');
+  });
+</script>
+</body>
+</html>

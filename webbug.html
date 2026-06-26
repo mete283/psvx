@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Web Bug Simulator</title>
+    <style>
+        :root {
+            --mor: #8b5cf6;
+            --neon-mor: #a78bfa;
+            --koyu: #05030a;
+            --neon-mavi: #3b82f6;
+            --cam: rgba(15, 11, 26, 0.65);
+            --sinir: rgba(139, 92, 246, 0.25);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--koyu);
+            color: #cbd5e1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Arka Plan Sıvı Cam Blur Efektleri */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 50%;
+            filter: blur(120px);
+            top: 15%;
+            left: 20%;
+            z-index: -1;
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            filter: blur(100px);
+            bottom: 15%;
+            right: 20%;
+            z-index: -1;
+        }
+
+        /* Düzenlenmiş Kompakt Panel */
+        .main-container {
+            width: 100%;
+            max-width: 520px;
+            background: var(--cam);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--sinir);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(139, 92, 246, 0.15);
+        }
+
+        h2 {
+            color: #fff;
+            font-size: 20px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 25px;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+        }
+
+        .section-card {
+            background: rgba(5, 3, 10, 0.55);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            color: var(--neon-mor);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            padding-bottom: 8px;
+        }
+
+        /* Form Yapısı */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            background: rgba(5, 3, 10, 0.85);
+            border: 1px solid var(--sinir);
+            padding: 14px 20px;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        select {
+            border-radius: 16px;
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238b5cf6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            background-size: 16px;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--mor);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.35);
+        }
+
+        /* Buton */
+        .action-btn {
+            background: linear-gradient(135deg, var(--mor), #5b21b6);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+            margin-top: 5px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px var(--mor);
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h2>WhatsApp CRASH V1</h2>
+    
+    <div class="section-card">
+   
+        <div class="form-group">
+            <label for="targetPhone">Target Number</label>
+            <input type="text" id="targetPhone" placeholder="+90 5xx xxx xx xx" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+            <label for="bugType">Bug Select</label>
+            <select id="bugType">
+                <option value="Aktif Değil">CRASH</option>
+                <option value="Aktif Değil">CRASH WHATSAPP</option>
+                <option value="Aktif Değil">UI CRASH</option>
+                <option value="Aktif Değil">DELAY</option>
+            </select>
+        </div>
+
+        <button class="action-btn" onclick="bugTetikle()">Start</button>
+    </div>
+</div>
+
+<script>
+    function bugTetikle() {
+        const numara = document.getElementById('targetPhone').value.trim();
+        const bug = document.getElementById('bugType').value;
+
+        if (!numara) {
+            alert("Lütfen önce hedef bir numara");
+            return;
+        }
+
+        alert(`[+] Operasyon Başlatıldı!\nHedef: ${numara}\nSistem: ${bug} mimarisi simüle ediliyor.`);
+    }
+</script>
+
+</body>
+</html>

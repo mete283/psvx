@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Siber İstihbarat | Canlı Analiz Modülü</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 30px; border-radius: 20px; width: 100%; max-width: 600px; }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; margin-bottom: 20px; font-size: 18px; }
+        input { width: 100%; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; margin-bottom: 15px; text-align: center; }
+        button { width: 100%; background: var(--mor); color: white; border: none; padding: 15px; border-radius: 50px; cursor: pointer; font-weight: bold; }
+        .result-box { margin-top: 20px; padding: 15px; border: 1px solid #2e1065; border-radius: 10px; background: #130f24; color: #fff; min-height: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>CANLI SİBER ANALİZ</h2>
+    <input type="text" id="target" placeholder="IP Adresi girin...">
+    <button onclick="analizEt()">SİSTEMİ TARA</button>
+    <div id="results" class="result-box">Sonuçlar burada görünecek...</div>
+</div>
+
+<script>
+async function analizEt() {
+    const target = document.getElementById('target').value;
+    const box = document.getElementById('results');
+    box.innerHTML = "Analiz ediliyor...";
+    
+    try {
+        // Gerçek veri akışı için IP-API servisi (Simülasyon değildir)
+        const res = await fetch(`https://ip-api.com/json/${target}`);
+        const data = await res.json();
+        
+        if(data.status === 'success') {
+            box.innerHTML = `
+                <div><strong>ISP:</strong> ${data.isp}</div>
+                <div><strong>Ülke:</strong> ${data.country}</div>
+                <div><strong>Şehir:</strong> ${data.city}</div>
+                <div><strong>Lokasyon:</strong> ${data.lat}, ${data.lon}</div>
+            `;
+        } else {
+            box.innerHTML = "Veri bulunamadı veya geçersiz IP.";
+        }
+    } catch(e) {
+        box.innerHTML = "Bağlantı hatası!";
+    }
+}
+</script>
+</body>
+</html>

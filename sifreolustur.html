@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Gerçek Zamanlı Şifre OSINT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root { 
+            --mor: #8b5cf6; 
+            --koyu: #06040a; 
+            --neon: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body { 
+            background: var(--koyu); 
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            padding: 20px 15px; 
+            min-height: 100vh; 
+            gap: 20px;
+        }
+        
+        .panel { 
+            background: #0f0b1a; 
+            border: 1px solid #2e1065; 
+            padding: 25px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 500px; 
+            box-shadow: var(--neon); 
+        }
+        
+        h2 { 
+            color: var(--mor); 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            font-size: 15px; 
+            margin-bottom: 25px; 
+        }
+
+        /* Çıktı Ekranı / İnput Alanı */
+        .output-container {
+            display: flex;
+            background: #0a0712;
+            border: 1px solid #4c1d95;
+            border-radius: 50px;
+            padding: 5px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .password-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            padding-left: 20px;
+            width: 100%;
+            font-family: inherit;
+        }
+        .copy-btn {
+            background: var(--mor);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+
+        /* Kontrol Elemanları */
+        .control-group {
+            margin-bottom: 12px;
+            background: #130e22;
+            padding: 12px 20px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .control-group label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        
+        .range-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .range-label-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--mor);
+            cursor: pointer;
+            background: #0a0712;
+            height: 6px;
+            border-radius: 5px;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--mor);
+            cursor: pointer;
+        }
+
+        .generate-btn { 
+            background: var(--mor); 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            border-radius: 50px; 
+            width: 100%; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 15px;
+            transition: 0.3s;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+        .generate-btn:hover { 
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+        }
+
+        /* Sonuç Paneli */
+        .result-panel {
+            background: #0f0b1a;
+            border: 1px solid #2e1065;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            box-shadow: var(--neon);
+        }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .result-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #1e1b4b;
+            font-size: 14px;
+        }
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+        .key {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .val {
+            text-align: right;
+            color: white;
+            font-weight: 600;
+        }
+
+        .status-safe { color: #10b981; text-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        .status-warn { color: #f59e0b; text-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+        .status-crit { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>Şifre Oluşturucu</h2>
+    
+    <div class="output-container">
+        <input type="text" class="password-input" id="passwordDisplay" placeholder="Şifre yazın veya üretin..." oninput="analizEt(this.value)">
+        <button class="copy-btn" onclick="kopyala()">KOPYALA</button>
+    </div>
+
+    <div class="control-group range-container">
+        <div class="range-label-row">
+            <label>Şifre Uzunluğu</label>
+            <span id="lengthVal" style="color: var(--mor); font-weight: bold;">16</span>
+        </div>
+        <input type="range" id="lengthSlider" min="4" max="50" value="16" oninput="document.getElementById('lengthVal').innerText = this.value; sifreUret();">
+    </div>
+
+    <div class="control-group">
+        <label for="incBüyük">Büyük Harf Ekle (A-Z)</label>
+        <input type="checkbox" id="incBüyük" checked onchange="sifreUret()">
+    </div>
+
+    <div class="control-group">
+        <label for="incKüçük">Küçük Harf Ekle (a-z)</label>
+        <input type="checkbox" id="incKüçük" checked onchange="sifreUret()">
+    </div>
+
+    <div class="control-group">
+        <label for="incSayi">Sayı Ekle (0-9)</label>
+        <input type="checkbox" id="incSayi" checked onchange="sifreUret()">
+    </div>
+
+    <div class="control-group">
+        <label for="incSembol">Özel Karakter Ekle (!@#$%)</label>
+        <input type="checkbox" id="incSembol" checked onchange="sifreUret()">
+    </div>
+
+    <button class="generate-btn" onclick="sifreUret()">OLUŞTUR</button>
+</div>
+
+<div class="result-panel">
+    <h2>Analiz Sonuçları</h2>
+    <table class="result-table">
+        <tr>
+            <td class="key">Güvenlik</td>
+            <td class="val" id="v_seviye">-</td>
+        </tr>
+        <tr>
+            <td class="key">Tahmini Kırılma Süresi</td>
+            <td class="val" id="v_sure">-</td>
+        </tr>
+        <tr>
+            <td class="key">Veri Sızıntısı</td>
+            <td class="val" id="v_sizinti">Sorgulanıyor...</td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    // Gerçekçi zaman formatlama (Maksimum sınırı 500+ Yıl ile sınırlayıp gerçekçi kıldık)
+    function formatTime(seconds) {
+        if (seconds < 0.1) return "Anında (Saliseler içinde)";
+        if (seconds < 1) return "Anında (1 saniyeden az)";
+        if (seconds < 60) return Math.floor(seconds) + " Saniye";
+        if (seconds < 3600) return Math.floor(seconds / 60) + " Dakika";
+        if (seconds < 86400) return Math.floor(seconds / 3600) + " Saat";
+        if (seconds < 31536000) return Math.floor(seconds / 86400) + " Gün";
+        
+        let yillar = Math.floor(seconds / 31536000);
+        if (yillar >= 500) {
+            return "500+ Yıl";
+        }
+        return yillar + " Yıl";
+    }
+
+    // Gerçek Veri Tabanı Kontrolü (Have I Been Pwned API)
+    let apiTimeout;
+    async function realPwnedCheck(password) {
+        const targetEl = document.getElementById('v_sizinti');
+        if (!password) {
+            targetEl.innerText = "-";
+            return;
+        }
+        
+        targetEl.innerHTML = `<span style="color:#64748b;">Sorgulanıyor...</span>`;
+        
+        try {
+            const hash = CryptoJS.SHA1(password).toString(CryptoJS.enc.Hex).toUpperCase();
+            const prefix = hash.substring(0, 5);
+            const suffix = hash.substring(5);
+            
+            const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+            if (!res.ok) throw new Error();
+            const text = await res.text();
+            
+            const lines = text.split('\n');
+            let matchCount = 0;
+            for (let line of lines) {
+                const [partsuffix, count] = line.trim().split(':');
+                if (partsuffix === suffix) {
+                    matchCount = parseInt(count);
+                    break;
+                }
+            }
+            
+            if (matchCount > 0) {
+                targetEl.innerHTML = `<span class="status-crit">⚠️ SIZMIŞ (${matchCount.toLocaleString()} Kez!)</span>`;
+            } else {
+                targetEl.innerHTML = `<span class="status-safe">Temiz</span>`;
+            }
+        } catch (e) {
+            targetEl.innerHTML = `<span style="color:#64748b;">Analiz Yapılamadı</span>`;
+        }
+    }
+
+    // Şifreyi üreten ana fonksiyon
+    function sifreUret() {
+        const length = parseInt(document.getElementById('lengthSlider').value);
+        const incBüyük = document.getElementById('incBüyük').checked;
+        const incKüçük = document.getElementById('incKüçük').checked;
+        const incSayi = document.getElementById('incSayi').checked;
+        const incSembol = document.getElementById('incSembol').checked;
+
+        const buyukHarfler = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const kucukHarfler = "abcdefghijklmnopqrstuvwxyz";
+        const sayilar = "0123456789";
+        const semboller = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+
+        let havuz = "";
+        if (incBüyük) havuz += buyukHarfler;
+        if (incKüçük) havuz += kucukHarfler;
+        if (incSayi) havuz += sayilar;
+        if (incSembol) havuz += semboller;
+
+        if (havuz === "") {
+            document.getElementById('passwordDisplay').value = "";
+            analizEt("");
+            return;
+        }
+
+        let uretilenSifre = "";
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * havuz.length);
+            uretilenSifre += havuz[randomIndex];
+        }
+        
+        document.getElementById('passwordDisplay').value = uretilenSifre;
+        analizEt(uretilenSifre);
+    }
+
+    // Şifreyi analiz eden profesyonel fonksiyon
+    function analizEt(password) {
+        if (!password) {
+            document.getElementById('v_seviye').innerText = "-";
+            document.getElementById('v_sure').innerText = "-";
+            document.getElementById('v_sizinti').innerText = "-";
+            return;
+        }
+
+        // Karakter çeşitliliğini dinamik hesapla
+        let cesitlilik = 0;
+        if (/[A-Z]/.test(password)) cesitlilik += 26;
+        if (/[a-z]/.test(password)) cesitlilik += 26;
+        if (/[0-9]/.test(password)) cesitlilik += 10;
+        if (/[^A-Za-z0-9]/.test(password)) cesitlilik += 32;
+        if (cesitlilik === 0) cesitlilik = 10;
+
+        // Brute-force formülü (Saniyede 800 Milyar deneme yapan güçlü bir süper bilgisayar kümesi baz alındı)
+        const kombinasyonSayisi = Math.pow(cesitlilik, password.length);
+        const tahminiSaniye = kombinasyonSayisi / 800000000000;
+
+        document.getElementById('v_sure').innerText = formatTime(tahminiSaniye);
+
+        // Güvenlik Seviyesi Belirleme
+        const seviyeElement = document.getElementById('v_seviye');
+        if (password.length < 8 || tahminiSaniye < 3600) {
+            seviyeElement.innerHTML = `<span class="status-crit">ZAYIF / GÜVENSİZ</span>`;
+        } else if (password.length >= 8 && password.length < 13 && tahminiSaniye < 31536000 * 5) {
+            seviyeElement.innerHTML = `<span class="status-warn">ORTA DÜZEY</span>`;
+        } else {
+            seviyeElement.innerHTML = `<span class="status-safe">GÜVENLİ</span>`;
+        }
+
+        // API istek yükünü azaltmak için debounce (bekleme) uygulayarak sızıntı kontrolü yapıyoruz
+        clearTimeout(apiTimeout);
+        apiTimeout = setTimeout(() => {
+            realPwnedCheck(password);
+        }, 500);
+    }
+
+    function kopyala() {
+        const txt = document.getElementById('passwordDisplay').value;
+        if (!txt) return;
+        
+        navigator.clipboard.writeText(txt).then(() => {
+            const copyBtn = document.querySelector('.copy-btn');
+            copyBtn.innerText = "KOPYALANDI!";
+            copyBtn.style.background = "#10b981";
+            
+            setTimeout(() => {
+                copyBtn.innerText = "KOPYALA";
+                copyBtn.style.background = "#8b5cf6";
+            }, 1500);
+        });
+    }
+
+    // İlk açılışta bir şifre üret
+    window.onload = sifreUret;
+</script>
+
+</body>
+</html>

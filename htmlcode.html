@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSVX | Sanal Sandbox IDE</title>
+    <style>
+        :root { 
+            --mor: #a855f7; 
+            --koyu: #05030a; 
+            --panel-bg: #0f0b1a;
+            --sinir: #2e1065;
+            --neon: 0 0 15px rgba(168, 85, 247, 0.5);
+            --yazi: #cbd5e1;
+        }
+        
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none; 
+        }
+        
+        body { 
+            background: var(--koyu); 
+            color: var(--yazi); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Üst Kontrol Barı */
+        .top-bar {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--sinir);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: white;
+            text-shadow: var(--neon);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* Üçgen Play Butonu */
+        .play-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+        }
+
+        .play-btn:hover {
+            background: #16a34a;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+            transform: scale(1.03);
+        }
+
+        .play-btn span {
+            font-size: 10px; /* Üçgen sembolü için */
+        }
+
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #dc2626;
+        }
+
+        /* Çalışma Alanı ve Katmanlar */
+        .workspace {
+            flex: 1;
+            position: relative;
+            background: #07050d;
+        }
+
+        .page-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .page-layer.active {
+            display: block;
+        }
+
+        /* Kod Sayfası (Textarea) */
+        textarea {
+            width: 100%;
+            height: 100%;
+            background: #07050d;
+            color: #34d399; /* Kod okunabilirliği için matrix yeşili font */
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 15px;
+            padding: 20px;
+            border: none;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        /* Deneme Sayfası (Iframe) */
+        iframe {
+            width: 100%;
+            height: 100%;
+            background: #ffffff; /* Web sayfalarının doğal görünmesi için beyaz arka plan */
+            border: none;
+        }
+
+        /* Alt Status Bar */
+        .status-bar {
+            background: var(--panel-bg);
+            border-top: 1px solid var(--sinir);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            justify-content: space-between;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 0 20px;
+            height: 38px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: white;
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: var(--mor);
+            box-shadow: var(--neon);
+        }
+
+        .system-info {
+            font-size: 12px;
+            color: #64748b;
+            padding-right: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="title">HTML</div>
+        <div class="actions">
+            <button class="clear-btn" onclick="temizle()">Temizle</button>
+            <button class="play-btn" onclick="derleVeCalistir()"><span>▶</span> KODU BAŞLAT</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div id="kodKatmani" class="page-layer active">
+            <textarea id="htmlInput" placeholder="HTML, CSS veya JavaScript kodlarınızı buraya yazın..."><!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            background: #111; 
+            color: #fff; 
+            padding-top: 60px; 
+        }
+        h1 { color: #a855f7; font-size: 28px; }
+        p { color: #94a3b8; }
+        .test-btn { 
+            padding: 12px 24px; 
+            background: #a855f7; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <h1>Sanal Derleyici Modülü Aktif!</h1>
+    <p>Kodlarınızı yazıp üstteki butonla derledikten sonra alt bardan geçiş yapabilirsiniz.</p>
+    <button class="test-btn" onclick="tetikle()">Sistemi Dene</button>
+
+    <script>
+        function tetikle() {
+            alert('Sanal kod sandbox alanı başarıyla çalışıyor!');
+        }
+    </script>
+</body>
+</html></textarea>
+        </div>
+
+        <div id="denemeKatmani" class="page-layer">
+            <iframe id="canliOnizleme"></iframe>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="tabs">
+            <button id="btnKod" class="tab-btn active" onclick="katmanDegistir('kod')">Kod Sayfası</button>
+            <button id="btnDeneme" class="tab-btn" onclick="katmanDegistir('deneme')">Deneme Ekranı</button>
+        </div>
+        <div class="system-info" id="sysInfo">Durum: Düzenleniyor...</div>
+    </div>
+
+    <script>
+        // Sayfa ilk açıldığında varsayılan kodu derle
+        window.onload = function() {
+            derle();
+        };
+
+        // Kodu derleyen ana fonksiyon
+        function derle() {
+            const kod = document.getElementById('htmlInput').value;
+            const iframe = document.getElementById('canliOnizleme');
+            
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(kod);
+            iframeDoc.close();
+        }
+
+        // Play (Kodu Başlat) butonuna basıldığında tetiklenir
+        function derleVeCalistir() {
+            // 1. Kodu derle
+            derle();
+            // 2. Otomatik olarak deneme ekranı katmanına geçiş yap
+            katmanDegistir('deneme');
+            
+            // Status bar bilgilendirmesini güncelle
+            const info = document.getElementById('sysInfo');
+            info.innerHTML = "⚡ Son Derleme: " + new Date().toLocaleTimeString();
+            info.style.color = "#22c55e";
+        }
+
+        // Alt status bar sekmelerinin geçiş mantığı
+        function katmanDegistir(hedef) {
+            const kodKatmani = document.getElementById('kodKatmani');
+            const denemeKatmani = document.getElementById('denemeKatmani');
+            const btnKod = document.getElementById('btnKod');
+            const btnDeneme = document.getElementById('btnDeneme');
+            const info = document.getElementById('sysInfo');
+
+            if (hedef === 'kod') {
+                kodKatmani.classList.add('active');
+                denemeKatmani.classList.remove('active');
+                btnKod.classList.add('active');
+                btnDeneme.classList.remove('active');
+                info.innerHTML = "Durum: Düzenleniyor...";
+                info.style.color = "#64748b";
+            } else if (hedef === 'deneme') {
+                kodKatmani.classList.remove('active');
+                denemeKatmani.classList.add('active');
+                btnKod.classList.remove('active');
+                btnDeneme.classList.add('active');
+            }
+        }
+
+        // Editörü temizleme fonksiyonu
+        function temizle() {
+            if(confirm("Yazdığınız kodlar temizlenecektir. Emin misiniz?")) {
+                document.getElementById('htmlInput').value = '';
+                const iframe = document.getElementById('canliOnizleme');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write('');
+                iframeDoc.close();
+                katmanDegistir('kod');
+                document.getElementById('sysInfo').innerHTML = "Temizlendi.";
+            }
+        }
+    </script>
+</body>
+</html>

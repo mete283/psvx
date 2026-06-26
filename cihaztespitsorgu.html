@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siber İstihbarat | Kesin Wi-Fi Ağ Keşfi</title>
+    <style>
+        :root { --mor: #8b5cf6; --koyu: #06040a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--koyu); color: #cbd5e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 15px; min-height: 100vh; }
+        
+        .panel { background: #0f0b1a; border: 1px solid #2e1065; padding: 25px; border-radius: 20px; width: 100%; max-width: 750px; box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); height: max-content; }
+        h2 { color: var(--mor); text-align: center; text-transform: uppercase; letter-spacing: 2px; font-size: 16px; margin-bottom: 20px; }
+        
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        input[type="text"] { flex: 1; min-width: 200px; padding: 15px; border-radius: 50px; border: 1px solid #4c1d95; background: #0a0712; color: white; text-align: center; font-size: 14px; outline: none; }
+        button { background: var(--mor); color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: bold; cursor: pointer; transition: all 0.3s; min-width: 150px; width: 100%; }
+        @media(min-width: 480px) { button { width: auto; } }
+        button:hover { opacity: 0.9; box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+        button:disabled { background: #475569; cursor: not-allowed; box-shadow: none; }
+        
+        /* Özelleştirilmiş Siber Mor Sürgü Yapısı */
+        .slider-container { background: #130f1e; border: 1px solid #241a38; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .slider-label { font-size: 13px; font-weight: 500; display: flex; justify-content: space-between; color: #a78bfa; }
+        .slider-wrapper { display: flex; align-items: center; gap: 12px; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #0a0712; border-radius: 5px; outline: none; border: 1px solid #2e1065; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--mor); cursor: pointer; box-shadow: 0 0 8px var(--mor); transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .slider-val { font-family: monospace; font-weight: bold; background: #2e1065; padding: 2px 8px; border-radius: 6px; color: white; min-width: 30px; text-align: center; }
+
+        .status-container { background: #130f1e; border: 1px solid #241a38; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; width: 100%; }
+        .progress-bar { height: 6px; background: #0a0712; border-radius: 3px; overflow: hidden; margin-top: 10px; width: 100%; }
+        .progress { height: 100%; width: 0%; background: var(--mor); transition: width 0.2s ease; }
+
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 15px; background: #130f1e; border: 1px solid #241a38; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { background: #1c152e; color: var(--mor); padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #241a38; font-size: 13px; white-space: nowrap; }
+        
+        .badge-live { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid #22c55e; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .badge-ip { background: #241a38; padding: 4px 8px; border-radius: 6px; font-family: monospace; border: 1px solid #4c1d95; color: #a78bfa; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>Wi-Fi CİHAZ SORGU</h2>
+    
+    <div class="status-container">
+        <div><strong>IP:</strong> <span id="local_ip" style="color:var(--mor);">Algılanıyor...</span></div>
+        <div style="margin-top: 5px;"><strong>Durum:</strong> <span id="status_text">Aktif</span></div>
+        <div class="progress-bar"><div id="p_bar" class="progress"></div></div>
+    </div>
+
+    <div class="slider-container">
+        <div class="slider-label">
+            <span>Katmanlı Tarama Sayısı (Derinlik Sınırı)</span>
+            <span>Uykudaki Cihazları Zorlama Gücü</span>
+        </div>
+        <div class="slider-wrapper">
+            <input type="range" id="passSlider" min="1" max="10" value="3" oninput="guncelleSlider(this.value)">
+            <span class="slider-val" id="sliderValue">3</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="subnetInput" placeholder="Ağ Aralığı Örn: 192.168.1" value="192.168.1">
+        <button id="scanBtn" onclick="multiPassTarama()">Sorgula</button>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Durum</th>
+                    <th style="width: 40%;">Cihaz Yerel IP Adresi</th>
+                    <th style="width: 40%;">Sınıflandırma / Kimlik</th>
+                </tr>
+            </thead>
+            <tbody id="cihazListesi">
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #64748b; padding: 30px;">Taramayı başlatmadınız. Belirlenen katman sayısı kadar taranıp kesin sonuç dökülecektir.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Sürgü Değer Değişim Takipçisi
+    function guncelleSlider(val) {
+        document.getElementById('sliderValue').innerText = val;
+    }
+
+    // 1. WebRTC Akıllı Tahminci
+    function yerelIPBul() {
+        window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+        if (!window.RTCPeerConnection) return;
+        
+        const pc = new RTCPeerConnection({iceServers:[]});
+        pc.createDataChannel("");
+        pc.createOffer().then(c => pc.setLocalDescription(c));
+        pc.onicecandidate = (ice) => {
+            if (!ice || !ice.candidate || !ice.candidate.candidate) return;
+            const myIP = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(ice.candidate.candidate)[1];
+            if(myIP && !myIP.startsWith('127.')) {
+                document.getElementById('local_ip').innerText = myIP;
+                let parcalar = myIP.split('.');
+                document.getElementById('subnetInput').value = `${parcalar[0]}.${parcalar[1]}.${parcalar[2]}`;
+                pc.onicecandidate = null;
+            }
+        };
+    }
+    window.onload = yerelIPBul;
+
+    // 2. Güvenli Ağ Pingleme
+    function jenerikPing(ip) {
+        return new Promise((resolve) => {
+            const kontrolcu = new AbortController();
+            const id = setTimeout(() => { kontrolcu.abort(); resolve({ ip, alive: false }); }, 400);
+
+            fetch(`http://${ip}`, { method: 'GET', mode: 'no-cors', signal: kontrolcu.signal, cache: 'no-store' })
+                .then(() => { clearTimeout(id); resolve({ ip, alive: true }); })
+                .catch((err) => {
+                    clearTimeout(id);
+                    if (err.name !== 'AbortError') {
+                        resolve({ ip, alive: true });
+                    } else {
+                        resolve({ ip, alive: false });
+                    }
+                });
+        });
+    }
+
+    // 3. Dinamik Katmanlı Tarama Motoru
+    async function multiPassTarama() {
+        const subnet = document.getElementById('subnetInput').value.trim();
+        const tbody = document.getElementById('cihazListesi');
+        const pBar = document.getElementById('p_bar');
+        const statusText = document.getElementById('status_text');
+        const scanBtn = document.getElementById('scanBtn');
+        const toplamTur = parseInt(document.getElementById('passSlider').value); // Sürgüden gelen değer (1-10)
+
+        if(!subnet || subnet.split('.').length !== 3) {
+            return alert("Lütfen geçerli bir IP bloğu girin. Örn: 192.168.1");
+        }
+
+        scanBtn.disabled = true;
+        tbody.innerHTML = '';
+        
+        let bulunanCihazlarSeti = new Set();
+
+        for (let tur = 1; tur <= toplamTur; tur++) {
+            const toplamIP = 254;
+            const adim = 30;
+
+            for (let i = 1; i <= toplamIP; i += adim) {
+                let havuz = [];
+                for (let j = i; j < i + adim && j <= toplamIP; j++) {
+                    havuz.push(jenerikPing(`${subnet}.${j}`));
+                }
+
+                let genelYuzde = (((tur - 1) * toplamIP + i) / (toplamTur * toplamIP)) * 100;
+                pBar.style.width = `${genelYuzde}%`;
+                statusText.innerHTML = ` <strong> ${tur}/${toplamTur}:</strong> Sorgulanıyor...`;
+
+                let sonuclar = await Promise.all(havuz);
+
+                for (let sonuc of sonuclar) {
+                    if (sonuc.alive && !bulunanCihazlarSeti.has(sonuc.ip)) {
+                        bulunanCihazlarSeti.add(sonuc.ip);
+                        
+                        let sonHane = parseInt(sonuc.ip.split('.').pop());
+                        let tip = "Aktif Donanım (Mobil / PC / IoT)";
+                        if(sonHane === 1) tip = "🌐 ANA MODEM / ROUTER (Ağ Geçidi)";
+
+                        if(tbody.innerHTML.includes("Taramayı başlatmadınız")) tbody.innerHTML = '';
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td><span class="badge-live">CANLI</span></td>
+                            <td><span class="badge-ip">${sonuc.ip}</span></td>
+                            <td style="font-weight: 500; color: ${sonHane===1 ? '#8b5cf6' : 'white'};">${tip}</td>
+                        `;
+                    }
+                }
+            }
+        }
+
+        pBar.style.width = "100%";
+        scanBtn.disabled = false;
+
+        if(bulunanCihazlarSeti.size === 0) {
+            statusText.innerHTML = "Tarama bitti. Ağda hiçbir cihaz bulunamadı.";
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b; padding: 30px;">Ağınızda başka cihaz bulunamadı.</td></tr>`;
+        } else {
+            statusText.innerHTML = `Sorgu bitti! Toplam <span style="color:#22c55e; font-weight:bold;">${bulunanCihazlarSeti.size}</span> cihaz bulundu.`;
+        }
+    }
+</script>
+</body>
+</html>
