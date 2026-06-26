@@ -114,23 +114,35 @@
     window.onload = yerelIPBul;
 
     // 2. Güvenli Ağ Pingleme
-    function jenerikPing(ip) {
-        return new Promise((resolve) => {
-            const kontrolcu = new AbortController();
-            const id = setTimeout(() => { kontrolcu.abort(); resolve({ ip, alive: false }); }, 400);
+function jenerikPing(ip) {
+    return new Promise((resolve) => {
+        const kontrolcu = new AbortController();
+        // Süreyi mobil cihazların hızına göre 500ms civarı yapmak daha sağlıklı olabilir
+        const id = setTimeout(() => { 
+            kontrolcu.abort(); 
+            resolve({ ip, alive: false }); 
+        }, 500);
 
-            fetch(`http://${ip}`, { method: 'GET', mode: 'no-cors', signal: kontrolcu.signal, cache: 'no-store' })
-                .then(() => { clearTimeout(id); resolve({ ip, alive: true }); })
-                .catch((err) => {
-                    clearTimeout(id);
-                    if (err.name !== 'AbortError') {
-                        resolve({ ip, alive: true });
-                    } else {
-                        resolve({ ip, alive: false });
-                    }
-                });
-        });
-    }
+        fetch(`http://${ip}:80`, { method: 'GET', mode: 'no-cors', signal: kontrolcu.signal, cache: 'no-store' })
+            .then(() => { 
+                clearTimeout(id); 
+                resolve({ ip, alive: true }); 
+            })
+            .catch((err) => {
+                clearTimeout(id);
+                // WebView'daki anlık genel hataları (TypeError) engellemek için:
+                // Sadece bağlantı reddedildiğinde veya CORS'a takıldığında (yani bir cihaz yanıt verdiğinde) canlı sayıyoruz.
+                // Eğer hata WebView tarafından anında üretilen bir ağ hatası ise canlı saymıyoruz.
+                if (err.name !== 'AbortError' && err.message !== "Failed to fetch") {
+                    resolve({ ip, alive: true });
+                } else {
+                    resolve({ ip, alive: false });
+                }
+            });
+    });
+}
+    
+
 
     // 3. Dinamik Katmanlı Tarama Motoru
     async function multiPassTarama() {
