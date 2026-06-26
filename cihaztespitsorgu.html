@@ -116,31 +116,24 @@
     // 2. Güvenli Ağ Pingleme
 function jenerikPing(ip) {
     return new Promise((resolve) => {
-        const kontrolcu = new AbortController();
-        // Süreyi mobil cihazların hızına göre 500ms civarı yapmak daha sağlıklı olabilir
-        const id = setTimeout(() => { 
-            kontrolcu.abort(); 
-            resolve({ ip, alive: false }); 
+        const img = new Image();
+        const timer = setTimeout(() => {
+            img.src = ""; // İsteği iptal et
+            resolve({ ip, alive: false });
         }, 500);
 
-        fetch(`http://${ip}:80`, { method: 'GET', mode: 'no-cors', signal: kontrolcu.signal, cache: 'no-store' })
-            .then(() => { 
-                clearTimeout(id); 
-                resolve({ ip, alive: true }); 
-            })
-            .catch((err) => {
-                clearTimeout(id);
-                // WebView'daki anlık genel hataları (TypeError) engellemek için:
-                // Sadece bağlantı reddedildiğinde veya CORS'a takıldığında (yani bir cihaz yanıt verdiğinde) canlı sayıyoruz.
-                // Eğer hata WebView tarafından anında üretilen bir ağ hatası ise canlı saymıyoruz.
-                if (err.name !== 'AbortError' && err.message !== "Failed to fetch") {
-                    resolve({ ip, alive: true });
-                } else {
-                    resolve({ ip, alive: false });
-                }
-            });
+        img.onload = () => { clearTimeout(timer); resolve({ ip, alive: true }); };
+        img.onerror = () => { 
+            clearTimeout(timer); 
+            // Ağda hiç olmayan cihaz "Zaman Aşımı" verir, 
+            // ama aktif olan ve portu kapatan cihaz anında onerror tetikler.
+            resolve({ ip, alive: true }); 
+        };
+        
+        img.src = `http://${ip}/favicon.ico?` + Date.now();
     });
 }
+    
     
 
 
