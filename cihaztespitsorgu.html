@@ -117,22 +117,33 @@
 function jenerikPing(ip) {
     return new Promise((resolve) => {
         const img = new Image();
-        const timer = setTimeout(() => {
-            img.src = ""; // İsteği iptal et
-            resolve({ ip, alive: false });
+        
+        // İstek zaman aşımı süresi (Mobil WebView için en ideal süre: 500ms)
+        const id = setTimeout(() => { 
+            img.src = ""; // İsteği durdur
+            resolve({ ip, alive: false }); 
         }, 500);
 
-        img.onload = () => { clearTimeout(timer); resolve({ ip, alive: true }); };
-        img.onerror = () => { 
-            clearTimeout(timer); 
-            // Ağda hiç olmayan cihaz "Zaman Aşımı" verir, 
-            // ama aktif olan ve portu kapatan cihaz anında onerror tetikler.
+        // Eğer cihazda bir web sunucusu varsa ve görseli yüklerse (Nadir durum ama canlı demektir)
+        img.onload = () => { 
+            clearTimeout(id); 
             resolve({ ip, alive: true }); 
         };
-        
-        img.src = `http://${ip}/favicon.ico?` + Date.now();
+
+        // WebView için sihirli nokta: 
+        // Eğer ağda o IP'ye sahip bir cihaz VARSA ama web sitesi yayınlamıyorsa (port kapalıysa) bile, 
+        // o cihaz "Bağlantı Reddedildi" (Connection Refused) sinyalini ANINDA geri döner ve onerror tetiklenir.
+        // Eğer ağda o IP'ye sahip bir cihaz YOKSA, istek hiçbir yere ulaşamaz ve 500ms boyunca sessiz kalıp TIMEOUT olur.
+        img.onerror = () => { 
+            clearTimeout(id);
+            resolve({ ip, alive: true }); 
+        };
+
+        // Cache (önbellek) koruması için her isteğe dinamik zaman damgası ekliyoruz
+        img.src = `http://${ip}/favicon.ico?v=${Date.now()}`;
     });
 }
+    
     
     
 
